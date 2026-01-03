@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="flight_lines" id="flight_lines">
+	<SimpleField name="seq" type="int"></SimpleField>
+</Schema>
+<Folder><name>flight_lines</name>
+  <Placemark>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#flight_lines">
+		<SimpleData name="seq">1</SimpleData>
+	</SchemaData></ExtendedData>
+      <LineString><altitudeMode>absolute</altitudeMode><coordinates>18.885297832656,47.5099784615937,0 19.0394203106075,47.5846257740528,0</coordinates></LineString>
+  </Placemark>
+  <Placemark>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#flight_lines">
+		<SimpleData name="seq">2</SimpleData>
+	</SchemaData></ExtendedData>
+      <LineString><altitudeMode>absolute</altitudeMode><coordinates>18.9017689371699,47.5012361893089,0 19.0511853852603,47.5751022492058,0</coordinates></LineString>
+  </Placemark>
+</Folder>
+</Document></kml>
