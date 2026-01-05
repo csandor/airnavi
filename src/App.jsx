@@ -419,6 +419,7 @@ function App() {
                             <HUD
                                 {...renderHudData}
                                 units={units}
+                                horizontalOffset={184}
                             />
                         </div>
 

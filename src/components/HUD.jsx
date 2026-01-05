@@ -14,7 +14,8 @@ const HUD = ({
     targetHeading,
     headingDiff,
     className,
-    units = 'metric'
+    units = 'metric',
+    horizontalOffset = 0
 }) => {
 
     // Thresholds from config
@@ -49,18 +50,29 @@ const HUD = ({
             <div style={{
                 position: 'absolute',
                 top: '50%',
-                left: '50%',
+                left: `calc(50% + ${horizontalOffset}px)`,
                 transform: 'translate(-50%, -50%)',
                 width: '120px',
                 height: '120px',
                 borderRadius: '50%',
-                border: `4px solid ${haloColor} `,
-                boxShadow: `0 0 20px ${haloColor} `,
+                border: `4px solid ${haloColor}`,
+                boxShadow: `0 0 20px ${haloColor}`,
                 transition: 'all 0.3s ease'
             }} />
 
             {/* Arrows */}
-            <div style={{ position: 'absolute', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr 1fr', width: '200px', height: '200px', pointerEvents: 'none' }}>
+            <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: `calc(50% + ${horizontalOffset}px)`,
+                transform: 'translate(-50%, -50%)',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gridTemplateRows: '1fr 1fr 1fr',
+                width: '200px',
+                height: '200px',
+                pointerEvents: 'none'
+            }}>
                 <div /* Up */ style={{ gridColumn: 2, gridRow: 1, display: 'flex', justifyContent: 'center' }}>
                     {showUp && <Arrow direction="up" />}
                 </div>

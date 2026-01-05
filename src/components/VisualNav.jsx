@@ -58,7 +58,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
             // --- Grouped Centering Calculation ---
             const compassRadius = 72;
             const maxHudWidth = 100; // Gate size
-            const spacing = 30; // Gap between compass and HUD
+            const spacing = 224; // Increased by one full diameter (144) from previous 80
             const totalGroupWidth = (compassRadius * 2) + spacing + maxHudWidth;
 
             const groupLeft = (width - totalGroupWidth) / 2;
