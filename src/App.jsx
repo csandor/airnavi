@@ -313,6 +313,7 @@ function App() {
         while (headingDiff < -180) headingDiff += 360;
         while (headingDiff > 180) headingDiff -= 360;
         renderHudData.headingDiff = headingDiff;
+        renderHudData.targetHeading = lineBearing;
     }
 
     const availableLines = lines.filter(l => !completedLines.has(l.seq));
@@ -411,11 +412,12 @@ function App() {
                             crossTrackDist={renderHudData.crossTrackDist}
                             altDiff={renderHudData.altDiff}
                             heading={gpsData.heading}
+                            targetHeading={renderHudData.targetHeading}
+                            limits={config.limits}
                         />
                         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%' }}>
                             <HUD
                                 {...renderHudData}
-                                targetHeading={0} // needs calc
                                 units={units}
                             />
                         </div>
