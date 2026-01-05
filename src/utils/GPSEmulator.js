@@ -45,13 +45,19 @@ export class GPSEmulator {
             const newLon = startPoint.lon + (endPoint.lon - startPoint.lon) * progress;
             const newAlt = startPoint.alt + (endPoint.alt - startPoint.alt) * progress;
 
-            // Add some "noise"
-            // Previous: 0.0001 (~10m). New: 0.0005 (~50m)
-            const noiseLat = (Math.random() - 0.5) * config.simulation.jitter.lat;
-            const noiseLon = (Math.random() - 0.5) * config.simulation.jitter.lon;
-            // Previous: 5m. New: 20m
+            // Add some "noise" based on horizontal meters
+            const jitterM = config.simulation.jitter.horizontalMeters;
+            const earthRadius = 6371000; // meters
+
+            // Random offset in meters
+            const offsetLatM = (Math.random() - 0.5) * jitterM;
+            const offsetLonM = (Math.random() - 0.5) * jitterM;
+
+            // Convert meters to lat/lon degrees
+            const noiseLat = (offsetLatM / earthRadius) * (180 / Math.PI);
+            const noiseLon = (offsetLonM / (earthRadius * Math.cos(newLat * Math.PI / 180))) * (180 / Math.PI);
+
             const noiseAlt = (Math.random() - 0.5) * config.simulation.jitter.alt;
-            // Heading Noise: +/- 5 degrees
             const noiseHeading = (Math.random() - 0.5) * config.simulation.jitter.heading;
 
             this.currentPos = {
