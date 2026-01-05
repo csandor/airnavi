@@ -28,6 +28,21 @@ function App() {
     const prevAlongTrack = useRef(null); // Track previous position for delta
 
     useEffect(() => {
+        // Try local storage first
+        const savedKml = localStorage.getItem('customKml');
+        if (savedKml) {
+            try {
+                const parsedLines = parseKML(savedKml);
+                setLines(parsedLines);
+                setNotification("Loaded Custom KML");
+                return;
+            } catch (e) {
+                console.error("Failed to parse saved KML", e);
+                localStorage.removeItem('customKml');
+            }
+        }
+
+        // Fallback to default
         fetch(config.kmlFilePath)
             .then(res => res.text())
             .then(text => {
@@ -36,6 +51,33 @@ function App() {
             })
             .catch(err => console.error("Failed to load KML", err))
     }, [])
+
+    const handleKmlImport = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target.result;
+            try {
+                const parsedLines = parseKML(content);
+                setLines(parsedLines);
+                localStorage.setItem('customKml', content);
+                setCurrentLine(null);
+                resetFlightState();
+                setNotification("Sucessfully Imported KML");
+            } catch (err) {
+                setNotification("Error: Invalid KML file");
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    const clearCustomKml = () => {
+        localStorage.removeItem('customKml');
+        window.location.reload();
+    };
 
     useEffect(() => {
         if (simulating) return;
@@ -311,6 +353,19 @@ function App() {
                     >
                         📥 CSV
                     </button>
+                    <label className="btn-primary" style={{ fontSize: '0.8rem', background: 'var(--color-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        📂 Load KML
+                        <input type="file" accept=".kml" onChange={handleKmlImport} style={{ display: 'none' }} />
+                    </label>
+                    {localStorage.getItem('customKml') && (
+                        <button
+                            className="btn-primary"
+                            style={{ fontSize: '0.8rem', background: 'transparent', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}
+                            onClick={clearCustomKml}
+                        >
+                            Reset
+                        </button>
+                    )}
                 </div>
             </header>
 
