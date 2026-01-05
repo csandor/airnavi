@@ -7,6 +7,7 @@ const config = {
 
     // UI / UX
     summaryAutoCloseSeconds: 10,
+    notificationDurationSeconds: 3,
     summaryDialogTimeoutMs: 10000, // Derived, or just use seconds * 1000
 
     // Simulation Settings

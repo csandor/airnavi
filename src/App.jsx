@@ -8,6 +8,7 @@ import HUD from './components/HUD'
 import VisualNav from './components/VisualNav'
 import MiniMap from './components/MiniMap'
 import SummaryDialog from './components/SummaryDialog'
+import Toast from './components/Toast'
 import config from './config'
 import './App.css'
 
@@ -19,13 +20,17 @@ function App() {
     const [gpsData, setGpsData] = useState({ lat: 0, lon: 0, alt: 0, speed: 0, heading: 0 })
     const [flightStatus, setFlightStatus] = useState('idle')
     const [simulating, setSimulating] = useState(false)
-    const [notification, setNotification] = useState(null)
+    const [notification, setNotification] = useState(null) // { message, type }
     const [units, setUnits] = useState('metric'); // 'metric' or 'imperial'
     const [showSummary, setShowSummary] = useState(false);
     const [lastSession, setLastSession] = useState(null);
     const completionLock = useRef(false); // Lock to prevent double logging
     const greenCoverage = useRef(new Set()); // Track meters covered in green
     const prevAlongTrack = useRef(null); // Track previous position for delta
+
+    const showToast = (message, type = 'info') => {
+        setNotification({ message, type });
+    };
 
     useEffect(() => {
         if ('serviceWorker' in navigator) {
@@ -42,11 +47,11 @@ function App() {
             try {
                 const parsedLines = parseKML(savedKml);
                 setLines(parsedLines);
-                setNotification("Loaded Custom KML");
+                showToast("Loaded Custom KML", "success");
                 return;
             } catch (e) {
                 console.error("Failed to parse saved KML", e);
-                setNotification(`Error in Saved KML: ${e.message}`);
+                showToast(`Error in Saved KML: ${e.message}`, "error");
                 localStorage.removeItem('customKml');
             }
         }
@@ -74,9 +79,9 @@ function App() {
                 localStorage.setItem('customKml', content);
                 setCurrentLine(null);
                 resetFlightState();
-                setNotification("Sucessfully Imported KML");
+                showToast("Sucessfully Imported KML", "success");
             } catch (err) {
-                setNotification(`Error: ${err.message}`);
+                showToast(`Error: ${err.message}`, "error");
                 console.error(err);
             }
         };
@@ -135,11 +140,11 @@ function App() {
         // Optionally auto-select it if no line is currently selected
         const line = lines.find(l => l.seq === seq);
         if (line) {
-            setNotification(`Restored Line ${seq}`);
+            showToast(`Restored Line ${seq}`, "success");
             if (!currentLine) {
                 setCurrentLine(line);
                 resetFlightState();
-                setNotification(`Restored and Selected Line ${seq}`);
+                showToast(`Restored and Selected Line ${seq}`, "success");
             }
         }
     }
@@ -175,7 +180,7 @@ function App() {
     const handleKeep = () => {
         setShowSummary(false);
         setCompletedLines(prev => new Set(prev).add(currentLine.seq));
-        setNotification(`Line ${currentLine.seq} Saved.`);
+        showToast(`Line ${currentLine.seq} Saved.`, "success");
 
         // Auto-advance logic
         setTimeout(() => {
@@ -184,7 +189,7 @@ function App() {
             if (nextLine) {
                 setCurrentLine(nextLine);
                 resetFlightState();
-                setNotification(`Switched to Line ${nextLine.seq}`);
+                showToast(`Switched to Line ${nextLine.seq}`, "success");
             }
         }, 1000);
     };
@@ -192,7 +197,7 @@ function App() {
     const handleReject = () => {
         flightLogger.deleteLastSession();
         setShowSummary(false);
-        setNotification(`Flight Rejected. Log deleted.`);
+        showToast(`Flight Rejected. Log deleted.`, "error");
         resetFlightState();
     };
 
@@ -321,17 +326,13 @@ function App() {
     return (
         <div className="app-container" style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             {notification && (
-                <div className="glass-panel" style={{
-                    position: 'absolute',
-                    top: '20px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    padding: '10px 20px',
-                    zIndex: 100,
-                    color: 'var(--color-success)',
-                    fontWeight: 'bold'
-                }}>
-                    {notification}
+                <div className="toast-container">
+                    <Toast
+                        message={notification.message}
+                        type={notification.type}
+                        duration={config.notificationDurationSeconds * 1000}
+                        onClose={() => setNotification(null)}
+                    />
                 </div>
             )}
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100, position: 'relative' }}>
