@@ -28,6 +28,14 @@ function App() {
     const prevAlongTrack = useRef(null); // Track previous position for delta
 
     useEffect(() => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+                console.log('PWA Service Worker Ready:', registration);
+            });
+        }
+    }, []);
+
+    useEffect(() => {
         // Try local storage first
         const savedKml = localStorage.getItem('customKml');
         if (savedKml) {

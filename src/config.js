@@ -3,7 +3,7 @@ const config = {
     completionThreshold: 98, // Percentage required to mark flight as "Success"
 
     // Data Source
-    kmlFilePath: '/lines.kml',
+    kmlFilePath: './lines.kml',
 
     // UI / UX
     summaryAutoCloseSeconds: 10,

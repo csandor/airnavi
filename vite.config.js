@@ -9,11 +9,15 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'lines.kml'],
+            injectRegister: 'inline',
+            includeAssets: ['pwa-192x192.png', 'pwa-512x512.png', 'lines.kml', 'vite.svg'],
             manifest: {
-                name: 'AirNavi',
+                name: 'AirNavi - Flight Navigator',
                 short_name: 'AirNavi',
-                description: 'Flight Navigation Assistant',
+                description: 'Offline Flight Navigation Assistant',
+                start_url: '.',
+                display: 'standalone',
+                background_color: '#161b22',
                 theme_color: '#1a2a3a',
                 icons: [
                     {
@@ -33,6 +37,10 @@ export default defineConfig({
                         purpose: 'any maskable'
                     }
                 ]
+            },
+            workbox: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,kml}'],
+                cleanupOutdatedCaches: true
             }
         })
     ],
