@@ -15,7 +15,7 @@ export const parseKML = (kmlText) => {
         const placemark = placemarks[i];
 
         // Extract Sequence Number
-        let seq = 0;
+        let seq = null;
         const simpleData = placemark.getElementsByTagName("SimpleData");
         for (let j = 0; j < simpleData.length; j++) {
             if (simpleData[j].getAttribute("name") === "seq") {
@@ -24,28 +24,45 @@ export const parseKML = (kmlText) => {
             }
         }
 
+        if (seq === null) {
+            throw new Error(`Placemark ${i + 1} is missing "<SimpleData name='seq'>".`);
+        }
+
         // Extract Coordinates
         const coordinatesTag = placemark.getElementsByTagName("coordinates")[0];
+        const altitudeModeTag = placemark.getElementsByTagName("altitudeMode")[0];
+
+        if (altitudeModeTag && altitudeModeTag.textContent.trim() !== "absolute") {
+            throw new Error(`Placemark ${seq || (i + 1)} has altitudeMode "${altitudeModeTag.textContent.trim()}". Must be "absolute".`);
+        }
+
         if (coordinatesTag) {
             const coordsRaw = coordinatesTag.textContent.trim().split(/\s+/);
-            if (coordsRaw.length >= 2) {
-                const startRaw = coordsRaw[0].split(",");
-                const endRaw = coordsRaw[1].split(",");
 
-                const start = {
-                    lon: parseFloat(startRaw[0]),
-                    lat: parseFloat(startRaw[1]),
-                    alt: parseFloat(startRaw[2]) || 0,
-                };
-
-                const end = {
-                    lon: parseFloat(endRaw[0]),
-                    lat: parseFloat(endRaw[1]),
-                    alt: parseFloat(endRaw[2]) || 0,
-                };
-
-                lines.push({ seq, start, end });
+            if (coordsRaw.length !== 2) {
+                throw new Error(`Placemark ${seq || (i + 1)} has ${coordsRaw.length} points. Only simple 2-point lines are allowed.`);
             }
+
+            const startRaw = coordsRaw[0].split(",");
+            const endRaw = coordsRaw[1].split(",");
+
+            if (startRaw.length < 3 || endRaw.length < 3) {
+                throw new Error(`Placemark ${seq || (i + 1)} coordinates must be 3D (lon,lat,alt).`);
+            }
+
+            const start = {
+                lon: parseFloat(startRaw[0]),
+                lat: parseFloat(startRaw[1]),
+                alt: parseFloat(startRaw[2]),
+            };
+
+            const end = {
+                lon: parseFloat(endRaw[0]),
+                lat: parseFloat(endRaw[1]),
+                alt: parseFloat(endRaw[2]),
+            };
+
+            lines.push({ seq, start, end });
         }
     }
 

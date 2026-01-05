@@ -46,6 +46,7 @@ function App() {
                 return;
             } catch (e) {
                 console.error("Failed to parse saved KML", e);
+                setNotification(`Error in Saved KML: ${e.message}`);
                 localStorage.removeItem('customKml');
             }
         }
@@ -75,7 +76,7 @@ function App() {
                 resetFlightState();
                 setNotification("Sucessfully Imported KML");
             } catch (err) {
-                setNotification("Error: Invalid KML file");
+                setNotification(`Error: ${err.message}`);
                 console.error(err);
             }
         };

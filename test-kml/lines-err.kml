@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="lineserr" id="lineserr">
+	<SimpleField name="seq" type="int"></SimpleField>
+</Schema>
+<Folder><name>lineserr</name>
+  <Placemark>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#lineserr">
+		<SimpleData name="seq">1</SimpleData>
+	</SchemaData></ExtendedData>
+      <LineString><altitudeMode>absolute</altitudeMode><coordinates>19.2848604352744,47.468523671581 19.2859007662839,47.4680144128089 19.2868334768442,47.46748898192 19.2861279650102,47.4669716294512 19.2847886883082,47.4662117587809 19.283891851231,47.4656216388738 19.2827319419444,47.4650476802802 19.2815002856917,47.4653467862447 19.2834733272616,47.46739197872 19.284322333028,47.46820033325</coordinates></LineString>
+  </Placemark>
+  <Placemark>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#lineserr">
+		<SimpleData name="seq">2</SimpleData>
+	</SchemaData></ExtendedData>
+      <LineString><altitudeMode>absolute</altitudeMode><coordinates>19.2874552838844,47.4667372024374 19.2878738078538,47.4660015798475 19.2870367599151,47.4656701421297 19.286486699841,47.4657590646494 19.286606278118,47.4660743341888 19.2870845912259,47.4664219368738 19.287395494746,47.4662683452731 19.2872520008136,47.4659369092374 19.2869410972935,47.4659369092374</coordinates></LineString>
+  </Placemark>
+</Folder>
+</Document></kml>
