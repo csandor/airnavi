@@ -28,8 +28,18 @@ function App() {
     const greenCoverage = useRef(new Set()); // Track meters covered in green
     const prevAlongTrack = useRef(null); // Track previous position for delta
 
+    // MiniMap dragging state
+    const [miniMapPos, setMiniMapPos] = useState({ bottom: 20, right: 20 });
+    const isDragging = useRef(false);
+    const dragStart = useRef({ x: 0, y: 0 });
+    const [showMiniMap, setShowMiniMap] = useState(true);
+
     const showToast = (message, type = 'info') => {
         setNotification({ message, type });
+    };
+
+    const toggleMiniMap = () => {
+        setShowMiniMap(prev => !prev);
     };
 
     useEffect(() => {
@@ -112,6 +122,56 @@ function App() {
         });
         return () => navigator.geolocation.clearWatch(watchId);
     }, [simulating]);
+
+    // Global mouse and touch handlers for MiniMap dragging
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (isDragging.current) {
+                const deltaX = e.clientX - dragStart.current.x;
+                const deltaY = dragStart.current.y - e.clientY;
+
+                setMiniMapPos(prev => ({
+                    right: prev.right - deltaX,
+                    bottom: prev.bottom + deltaY
+                }));
+
+                dragStart.current = { x: e.clientX, y: e.clientY };
+            }
+        };
+
+        const handleTouchMove = (e) => {
+            if (isDragging.current && e.touches.length > 0) {
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - dragStart.current.x;
+                const deltaY = dragStart.current.y - touch.clientY;
+
+                setMiniMapPos(prev => ({
+                    right: prev.right - deltaX,
+                    bottom: prev.bottom + deltaY
+                }));
+
+                dragStart.current = { x: touch.clientX, y: touch.clientY };
+                e.preventDefault();
+            }
+        };
+
+        const handleMouseUp = () => {
+            isDragging.current = false;
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleMouseUp);
+        };
+    }, []);
+
 
     const resetFlightState = () => {
         setFlightStatus('idle');
@@ -389,6 +449,9 @@ function App() {
                     onKmlImport={handleKmlImport}
                     onReset={clearCustomKml}
                     hasCustomKml={!!localStorage.getItem('customKml')}
+                    // MiniMap Props
+                    showMiniMap={showMiniMap}
+                    onToggleMiniMap={toggleMiniMap}
                 />
             </div>
 
@@ -425,20 +488,41 @@ function App() {
                         </div>
 
                         {/* MiniMap Overlay */}
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '20px',
-                            right: '20px',
-                            width: '200px',
-                            height: '200px',
-                            zIndex: 20
-                        }}>
-                            <MiniMap
-                                currentLine={currentLine}
-                                gpsData={gpsData}
-                                direction={direction}
-                            />
-                        </div>
+                        {showMiniMap && (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    bottom: `${miniMapPos.bottom}px`,
+                                    right: `${miniMapPos.right}px`,
+                                    width: '200px',
+                                    height: '200px',
+                                    zIndex: 20,
+                                    cursor: isDragging.current ? 'grabbing' : 'grab',
+                                    userSelect: 'none',
+                                    touchAction: 'none'
+                                }}
+                                onMouseDown={(e) => {
+                                    isDragging.current = true;
+                                    dragStart.current = { x: e.clientX, y: e.clientY };
+                                    e.preventDefault();
+                                }}
+                                onTouchStart={(e) => {
+                                    if (e.touches.length > 0) {
+                                        isDragging.current = true;
+                                        const touch = e.touches[0];
+                                        dragStart.current = { x: touch.clientX, y: touch.clientY };
+                                        e.preventDefault();
+                                    }
+                                }}
+                            >
+                                <MiniMap
+                                    currentLine={currentLine}
+                                    gpsData={gpsData}
+                                    direction={direction}
+                                    onClose={toggleMiniMap}
+                                />
+                            </div>
+                        )}
                     </>
                 )}
             </div>

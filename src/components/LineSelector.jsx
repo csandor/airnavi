@@ -20,7 +20,10 @@ const LineSelector = ({
     onDownloadCSV,
     onKmlImport,
     onReset,
-    hasCustomKml
+    hasCustomKml,
+    // MiniMap Props
+    showMiniMap,
+    onToggleMiniMap
 }) => {
     console.log("LineSelector Props:", { linesCount: lines.length, completedCount: completedLines.length });
     const isFlying = flightStatus === 'flying';
@@ -165,6 +168,8 @@ const LineSelector = ({
                     onKmlImport={onKmlImport}
                     onReset={onReset}
                     hasCustomKml={hasCustomKml}
+                    showMiniMap={showMiniMap}
+                    onToggleMiniMap={onToggleMiniMap}
                 />
             </div>
         </div>

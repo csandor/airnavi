@@ -8,7 +8,9 @@ const HamburgerMenu = ({
     onDownloadCSV,
     onKmlImport,
     onReset,
-    hasCustomKml
+    hasCustomKml,
+    showMiniMap,
+    onToggleMiniMap
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef(null);
@@ -100,6 +102,11 @@ const HamburgerMenu = ({
                             />
                         </MenuButton>
                     </div>
+
+                    <MenuButton
+                        onClick={() => handleAction(onToggleMiniMap)}
+                        label={showMiniMap ? '✓ MiniMap' : 'MiniMap'}
+                    />
 
                     {hasCustomKml && (
                         <MenuButton

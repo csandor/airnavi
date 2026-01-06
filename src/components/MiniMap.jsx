@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { calculateDistance, calculateBearing } from '../utils/GeoUtils';
 
-const MiniMap = ({ currentLine, gpsData, direction, className }) => {
+const MiniMap = ({ currentLine, gpsData, direction, className, onClose }) => {
     const canvasRef = useRef(null);
     const [path, setPath] = useState([]);
 
@@ -157,8 +157,41 @@ const MiniMap = ({ currentLine, gpsData, direction, className }) => {
     }, [currentLine, gpsData, path, direction]);
 
     return (
-        <div className={`glass-panel ${className || ''}`} style={{ overflow: 'hidden' }}>
-            <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+        <div className={`glass-panel ${className || ''}`} style={{ overflow: 'hidden', position: 'relative' }}>
+            <canvas ref={canvasRef} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
+            {onClose && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                    }}
+                    style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        color: 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        lineHeight: '1',
+                        padding: 0,
+                        pointerEvents: 'auto',
+                        transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = 'rgba(0, 0, 0, 0.8)'}
+                    onMouseLeave={(e) => e.target.style.background = 'rgba(0, 0, 0, 0.6)'}
+                    title="Close MiniMap"
+                >
+                    ×
+                </button>
+            )}
         </div>
     );
 };
