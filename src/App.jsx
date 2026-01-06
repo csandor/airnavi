@@ -124,6 +124,10 @@ function App() {
     const handleLineSelect = (line) => {
         setCurrentLine(line);
         resetFlightState();
+        if (line) {
+            setFlightStatus('flying');
+            flightLogger.startFlight();
+        }
     }
 
     const toggleDirection = () => {
@@ -144,6 +148,8 @@ function App() {
             if (!currentLine) {
                 setCurrentLine(line);
                 resetFlightState();
+                setFlightStatus('flying');
+                flightLogger.startFlight();
                 showToast(`Restored and Selected Line ${seq}`, "success");
             }
         }
@@ -177,28 +183,35 @@ function App() {
         completionLock.current = false;
     }
 
+    const advanceToNextLine = () => {
+        if (!currentLine) return;
+        const nextSeq = currentLine.seq + 1;
+        const nextLine = lines.find(l => l.seq >= nextSeq && !completedLines.has(l.seq));
+        if (nextLine) {
+            handleLineSelect(nextLine);
+            showToast(`Switched to Line ${nextLine.seq}`, "success");
+        }
+    };
+
     const handleKeep = () => {
         setShowSummary(false);
-        setCompletedLines(prev => new Set(prev).add(currentLine.seq));
-        showToast(`Line ${currentLine.seq} Saved.`, "success");
+        const seqToAdd = currentLine.seq;
+        setCompletedLines(prev => {
+            const next = new Set(prev);
+            next.add(seqToAdd);
+            return next;
+        });
+        showToast(`Line ${seqToAdd} Saved.`, "success");
 
-        // Auto-advance logic
-        setTimeout(() => {
-            const nextSeq = currentLine.seq + 1;
-            const nextLine = lines.find(l => l.seq >= nextSeq && !completedLines.has(l.seq));
-            if (nextLine) {
-                setCurrentLine(nextLine);
-                resetFlightState();
-                showToast(`Switched to Line ${nextLine.seq}`, "success");
-            }
-        }, 1000);
+        setTimeout(advanceToNextLine, 1000);
     };
 
     const handleReject = () => {
         flightLogger.deleteLastSession();
         setShowSummary(false);
         showToast(`Flight Rejected. Log deleted.`, "error");
-        resetFlightState();
+
+        setTimeout(advanceToNextLine, 1000);
     };
 
     const toggleSimulation = () => {
