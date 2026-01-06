@@ -122,6 +122,11 @@ function App() {
     };
 
     const handleLineSelect = (line) => {
+        // If already flying a line, finish it first
+        if (flightStatus === 'flying' && currentLine) {
+            finishFlight();
+        }
+
         setCurrentLine(line);
         resetFlightState();
         if (line) {
@@ -291,10 +296,10 @@ function App() {
         // Update Logger
         flightLogger.updateStats(currentHudData);
 
-        // Check Completion
-        if (alongTrack > totalLen * 0.95 && flightStatus !== 'completed' && !completionLock.current) {
+        // Check Completion (Crossing Endpoint Plane - 100% Progress)
+        if (alongTrack >= totalLen && flightStatus !== 'completed' && !completionLock.current) {
             completionLock.current = true;
-            finishFlight(true);
+            finishFlight();
         }
 
     }, [gpsData, flightStatus, currentLine, direction]);
