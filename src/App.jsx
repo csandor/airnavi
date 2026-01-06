@@ -122,8 +122,17 @@ function App() {
     };
 
     const handleLineSelect = (line) => {
+        // If already flying a line, finish it first
+        if (flightStatus === 'flying' && currentLine) {
+            finishFlight();
+        }
+
         setCurrentLine(line);
         resetFlightState();
+        if (line) {
+            setFlightStatus('flying');
+            flightLogger.startFlight();
+        }
     }
 
     const toggleDirection = () => {
@@ -144,6 +153,8 @@ function App() {
             if (!currentLine) {
                 setCurrentLine(line);
                 resetFlightState();
+                setFlightStatus('flying');
+                flightLogger.startFlight();
                 showToast(`Restored and Selected Line ${seq}`, "success");
             }
         }
@@ -177,28 +188,35 @@ function App() {
         completionLock.current = false;
     }
 
+    const advanceToNextLine = () => {
+        if (!currentLine) return;
+        const nextSeq = currentLine.seq + 1;
+        const nextLine = lines.find(l => l.seq >= nextSeq && !completedLines.has(l.seq));
+        if (nextLine) {
+            handleLineSelect(nextLine);
+            showToast(`Switched to Line ${nextLine.seq}`, "success");
+        }
+    };
+
     const handleKeep = () => {
         setShowSummary(false);
-        setCompletedLines(prev => new Set(prev).add(currentLine.seq));
-        showToast(`Line ${currentLine.seq} Saved.`, "success");
+        const seqToAdd = currentLine.seq;
+        setCompletedLines(prev => {
+            const next = new Set(prev);
+            next.add(seqToAdd);
+            return next;
+        });
+        showToast(`Line ${seqToAdd} Saved.`, "success");
 
-        // Auto-advance logic
-        setTimeout(() => {
-            const nextSeq = currentLine.seq + 1;
-            const nextLine = lines.find(l => l.seq >= nextSeq && !completedLines.has(l.seq));
-            if (nextLine) {
-                setCurrentLine(nextLine);
-                resetFlightState();
-                showToast(`Switched to Line ${nextLine.seq}`, "success");
-            }
-        }, 1000);
+        setTimeout(advanceToNextLine, 1000);
     };
 
     const handleReject = () => {
         flightLogger.deleteLastSession();
         setShowSummary(false);
         showToast(`Flight Rejected. Log deleted.`, "error");
-        resetFlightState();
+
+        setTimeout(advanceToNextLine, 1000);
     };
 
     const toggleSimulation = () => {
@@ -278,10 +296,10 @@ function App() {
         // Update Logger
         flightLogger.updateStats(currentHudData);
 
-        // Check Completion
-        if (alongTrack > totalLen * 0.95 && flightStatus !== 'completed' && !completionLock.current) {
+        // Check Completion (Crossing Endpoint Plane - 100% Progress)
+        if (alongTrack >= totalLen && flightStatus !== 'completed' && !completionLock.current) {
             completionLock.current = true;
-            finishFlight(true);
+            finishFlight();
         }
 
     }, [gpsData, flightStatus, currentLine, direction]);
