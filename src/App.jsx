@@ -129,14 +129,14 @@ function App() {
 
         setCurrentLine(line);
         resetFlightState();
-        if (line) {
-            setFlightStatus('flying');
-            flightLogger.startFlight();
-        }
     }
 
     const toggleDirection = () => {
         setDirection(prev => prev === 'normal' ? 'reverse' : 'normal');
+        resetFlightState();
+        if (flightStatus === 'flying') {
+            flightLogger.startFlight(); // Restart logger for new direction
+        }
     }
 
     const handleLineRestore = (seq) => {
@@ -153,8 +153,6 @@ function App() {
             if (!currentLine) {
                 setCurrentLine(line);
                 resetFlightState();
-                setFlightStatus('flying');
-                flightLogger.startFlight();
                 showToast(`Restored and Selected Line ${seq}`, "success");
             }
         }
@@ -221,13 +219,11 @@ function App() {
 
     const toggleSimulation = () => {
         if (simulating) {
-            finishFlight();
+            gpsEmulator.stopSimulation();
+            setSimulating(false);
         } else {
             if (!currentLine) return;
-            resetFlightState(); // Ensure clean start
             setSimulating(true);
-            setFlightStatus('flying');
-            flightLogger.startFlight();
 
             const start = direction === 'normal' ? currentLine.start : currentLine.end;
             const end = direction === 'normal' ? currentLine.end : currentLine.start;
@@ -243,6 +239,19 @@ function App() {
             });
         }
     }
+
+    const toggleFlight = () => {
+        if (!currentLine) return;
+
+        if (flightStatus === 'flying') {
+            finishFlight();
+        } else {
+            resetFlightState();
+            setFlightStatus('flying');
+            flightLogger.startFlight();
+            showToast("Recording Started", "success");
+        }
+    };
 
     // Logic Loop via Effect
     useEffect(() => {
@@ -291,17 +300,23 @@ function App() {
                 }
             }
         }
-        prevAlongTrack.current = currentAlongTrack;
 
         // Update Logger
         flightLogger.updateStats(currentHudData);
 
         // Check Completion (Crossing Endpoint Plane - 100% Progress)
-        if (alongTrack >= totalLen && flightStatus !== 'completed' && !completionLock.current) {
+        // Transition Requirement: Must have been before the plane (prevAlongTrack < totalLen)
+        // and now at or past it (alongTrack >= totalLen).
+        if (prevAlongTrack.current !== null &&
+            prevAlongTrack.current < totalLen &&
+            alongTrack >= totalLen &&
+            flightStatus !== 'completed' &&
+            !completionLock.current) {
             completionLock.current = true;
             finishFlight();
         }
 
+        prevAlongTrack.current = alongTrack;
     }, [gpsData, flightStatus, currentLine, direction]);
 
     // Calculate HUD Data for Render (Visual only)
@@ -353,51 +368,6 @@ function App() {
                     />
                 </div>
             )}
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100, position: 'relative' }}>
-                <h1 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    AirNavi
-                    <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                        {flightStatus === 'flying' ? '● REC' : ''}
-                    </span>
-                </h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button
-                        className="btn-primary"
-                        style={{ fontSize: '0.8rem', background: simulating ? 'var(--color-danger)' : 'var(--color-success)' }}
-                        onClick={toggleSimulation}
-                    >
-                        {simulating ? 'Stop Sim' : 'Simulate Flight'}
-                    </button>
-                    <button
-                        className="btn-primary"
-                        style={{ fontSize: '0.8rem', background: 'transparent', border: '1px solid currentColor' }}
-                        onClick={() => setUnits(u => u === 'metric' ? 'imperial' : 'metric')}
-                    >
-                        {units === 'metric' ? 'MET' : 'IMP'}
-                    </button>
-                    <button
-                        className="btn-primary"
-                        style={{ fontSize: '0.8rem', background: 'var(--color-primary)' }}
-                        onClick={() => flightLogger.downloadCSV()}
-                    >
-                        📥 CSV
-                    </button>
-                    <label className="btn-primary" style={{ fontSize: '0.8rem', background: 'var(--color-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        📂 Load KML
-                        <input type="file" accept=".kml" onChange={handleKmlImport} style={{ display: 'none' }} />
-                    </label>
-                    {localStorage.getItem('customKml') && (
-                        <button
-                            className="btn-primary"
-                            style={{ fontSize: '0.8rem', background: 'transparent', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}
-                            onClick={clearCustomKml}
-                        >
-                            Reset
-                        </button>
-                    )}
-                </div>
-            </header>
-
             <div style={{ position: 'relative', zIndex: 90 }}>
                 <LineSelector
                     lines={availableLines}
@@ -407,6 +377,18 @@ function App() {
                     onDirectionToggle={toggleDirection}
                     completedLines={lines.filter(l => completedLines.has(l.seq))}
                     onLineRestore={handleLineRestore}
+                    // Flight Control Props
+                    flightStatus={flightStatus}
+                    onToggleFlight={toggleFlight}
+                    // Menu Props
+                    simulating={simulating}
+                    onToggleSimulation={toggleSimulation}
+                    units={units}
+                    onToggleUnits={() => setUnits(u => u === 'metric' ? 'imperial' : 'metric')}
+                    onDownloadCSV={() => flightLogger.downloadCSV()}
+                    onKmlImport={handleKmlImport}
+                    onReset={clearCustomKml}
+                    hasCustomKml={!!localStorage.getItem('customKml')}
                 />
             </div>
 

@@ -12,7 +12,7 @@ const config = {
 
     // Simulation Settings
     simulation: {
-        speedKnots: 50,
+        speedKnots: 10,
         preStartDistanceFactor: 0.1, // Start 5% before the actual start point
         jitter: {
             horizontalMeters: 10, // Max +/- deviation in meters
@@ -24,7 +24,9 @@ const config = {
     // Limits for Halo Colors (meters)
     limits: {
         green: 2,   // Within this cross-track error -> Green Halo & Completes Line
-        yellow: 4   // Within this -> Yellow Halo. Above -> Red.
+        yellow: 4,  // Within this -> Yellow Halo. Above -> Red.
+        vertical_green: 2, // Within this altitude error -> Green
+        vertical_yellow: 4 // Within this -> Yellow. Above -> Red.
     }
 };
 

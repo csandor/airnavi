@@ -21,17 +21,25 @@ const HUD = ({
     // Thresholds from config
     const greenLimit = config.limits.green;
     const yellowLimit = config.limits.yellow;
+    const vGreenLimit = config.limits.vertical_green;
+    const vYellowLimit = config.limits.vertical_yellow;
 
-    // Determine Halo Color
+    // Determine Halo Color (Worst case wins)
     const xt = Math.abs(crossTrackDist);
+    const vt = Math.abs(altDiff);
+
     let haloColor = 'rgba(255, 0, 0, 0.5)'; // red
-    if (xt < greenLimit) haloColor = 'rgba(0, 255, 0, 0.6)'; // green
-    else if (xt < yellowLimit) haloColor = 'rgba(255, 204, 0, 0.6)'; // yellow
+
+    if (xt < greenLimit && vt < vGreenLimit) {
+        haloColor = 'rgba(0, 255, 0, 0.6)'; // green
+    } else if (xt < yellowLimit && vt < vYellowLimit) {
+        haloColor = 'rgba(255, 204, 0, 0.6)'; // yellow
+    }
 
     const showLeft = crossTrackDist > greenLimit;
     const showRight = crossTrackDist < -greenLimit;
-    const showDown = altDiff > 10; // Fixed 10m for now or use config
-    const showUp = altDiff < -10;
+    const showDown = altDiff > vGreenLimit;
+    const showUp = altDiff < -vGreenLimit;
 
     return (
         <div className={`hud - container ${className || ''} `} style={{

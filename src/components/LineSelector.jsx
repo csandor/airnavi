@@ -1,4 +1,5 @@
 import React from 'react';
+import HamburgerMenu from './HamburgerMenu';
 
 const LineSelector = ({
     lines,
@@ -7,9 +8,23 @@ const LineSelector = ({
     direction,
     onDirectionToggle,
     completedLines = [],
-    onLineRestore
+    onLineRestore,
+    // Flight Control Props
+    flightStatus,
+    onToggleFlight,
+    // Menu Props
+    simulating,
+    onToggleSimulation,
+    units,
+    onToggleUnits,
+    onDownloadCSV,
+    onKmlImport,
+    onReset,
+    hasCustomKml
 }) => {
     console.log("LineSelector Props:", { linesCount: lines.length, completedCount: completedLines.length });
+    const isFlying = flightStatus === 'flying';
+
     return (
         <div className="glass-panel" style={{
             padding: 'var(--spacing-md)',
@@ -90,26 +105,67 @@ const LineSelector = ({
                 </div>
             )}
 
-            <div>
-                <label style={{
-                    display: 'block',
-                    fontSize: '0.8em',
-                    color: 'var(--color-text-secondary)',
-                    marginBottom: 'var(--spacing-xs)'
-                }}>
-                    Direction
-                </label>
-                <button
-                    className="btn-primary"
-                    onClick={onDirectionToggle}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--spacing-sm)'
-                    }}
-                >
-                    {direction === 'normal' ? 'Start → End' : 'End → Start'}
-                </button>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--spacing-md)' }}>
+                <div>
+                    <label style={{
+                        display: 'block',
+                        fontSize: '0.8em',
+                        color: 'var(--color-text-secondary)',
+                        marginBottom: 'var(--spacing-xs)'
+                    }}>
+                        Direction
+                    </label>
+                    <button
+                        className="btn-primary"
+                        onClick={onDirectionToggle}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--spacing-sm)'
+                        }}
+                    >
+                        {direction === 'normal' ? 'Start → End' : 'End → Start'}
+                    </button>
+                </div>
+
+                {/* Flight Control Button (Play/Stop) */}
+                {currentLine && (
+                    <button
+                        className="btn-primary"
+                        onClick={onToggleFlight}
+                        style={{
+                            padding: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: isFlying ? 'var(--color-danger)' : 'rgba(255, 255, 255, 0.1)',
+                            border: isFlying ? 'none' : '1px solid var(--color-success)',
+                            color: isFlying ? 'white' : 'var(--color-success)'
+                        }}
+                        title={isFlying ? "Stop Recording" : "Start Flying"}
+                    >
+                        {isFlying ? (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="6" width="12" height="12" rx="1" />
+                            </svg>
+                        ) : (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                        )}
+                    </button>
+                )}
+
+                <HamburgerMenu
+                    simulating={simulating}
+                    onToggleSimulation={onToggleSimulation}
+                    units={units}
+                    onToggleUnits={onToggleUnits}
+                    onDownloadCSV={onDownloadCSV}
+                    onKmlImport={onKmlImport}
+                    onReset={onReset}
+                    hasCustomKml={hasCustomKml}
+                />
             </div>
         </div>
     );
