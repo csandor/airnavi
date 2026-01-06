@@ -15,6 +15,7 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
     return (
         <div className={`toast ${type} ${isClosing ? 'toast-out' : ''}`}>
             {message}
+            <span className="toast-close" onClick={onClose} aria-label="Close">×</span>
         </div>
     );
 };
