@@ -121,11 +121,15 @@ const LineSelector = ({
                     <button
                         className="btn-primary"
                         onClick={onDirectionToggle}
+                        disabled={isFlying}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 'var(--spacing-sm)'
+                            gap: 'var(--spacing-sm)',
+                            opacity: isFlying ? 0.5 : 1,
+                            cursor: isFlying ? 'not-allowed' : 'pointer'
                         }}
+                        title={isFlying ? "Stop recording to change direction" : ""}
                     >
                         {direction === 'normal' ? 'Start → End' : 'End → Start'}
                     </button>
