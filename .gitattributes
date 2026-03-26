@@ -1,0 +1,29 @@
+* text=auto
+
+# Web files
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+
+# Data/config
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.qmd text eol=lf
+*.kml text eol=lf
+
+# Images (binary)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+
+# Fonts (binary)
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
