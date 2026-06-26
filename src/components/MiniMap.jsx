@@ -58,19 +58,11 @@ const MiniMap = ({ currentLine, gpsData, direction, className, onClose }) => {
                 maxLon = Math.max(maxLon, gpsData.lon);
             }
 
-            // Include path history
-            path.forEach(p => {
-                minLat = Math.min(minLat, p.lat);
-                maxLat = Math.max(maxLat, p.lat);
-                minLon = Math.min(minLon, p.lon);
-                maxLon = Math.max(maxLon, p.lon);
-            });
-
-            // Add padding (10%)
+            // Add padding (20%)
             const latRange = maxLat - minLat || 0.01;
             const lonRange = maxLon - minLon || 0.01;
-            const paddingLat = latRange * 0.1;
-            const paddingLon = lonRange * 0.1;
+            const paddingLat = latRange * 0.2;
+            const paddingLon = lonRange * 0.2;
 
             minLat -= paddingLat;
             maxLat += paddingLat;
