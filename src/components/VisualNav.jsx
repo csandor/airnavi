@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import config from '../config';
 
 const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, attitude, onLayout }) => {
     const canvasRef = useRef(null);
@@ -51,9 +52,19 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
             // If crossTrack is 0, gate is center.
             // If crossTrack is +50m (we are Right), gate appears Left.
 
-            const scale = 5; // pixels per meter shift
-            const offsetX = -crossTrackDist * scale;
-            const offsetY = altDiff * scale;
+            // Logarithmic crosshair displacement.
+            // maxPx = 2 * compassRadius (computed later, so we forward-ref it here after sizing).
+            // logDisplace(value, maxDist, maxPx):
+            //   maps [0, maxDist] -> [0, maxPx] logarithmically, clamped at maxPx.
+            //   ref = maxDist * 0.1 controls curve shape (smaller = more aggressive log).
+            const logDisplace = (value, maxDist, maxPx) => {
+                const sign = value < 0 ? -1 : 1;
+                const abs = Math.abs(value);
+                const ref = maxDist * 0.1;
+                const px = maxPx * Math.log(1 + abs / ref) / Math.log(1 + maxDist / ref);
+                return sign * Math.min(px, maxPx);
+            };
+            // maxPx is set after compassRadius is computed below; offsetX/Y assigned there too.
 
             // --- Dynamic sizing: fill available space without overlapping bottom data panel ---
             // Bottom data panel is ~70px tall + 20px bottom margin = 90px reserved
@@ -79,6 +90,10 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
 
             // Notify parent of gate center so HUD halo can be aligned to it
             if (onLayout) onLayout({ hudCenterX, canvasWidth: width, compassRadius });
+
+            const maxPx = compassRadius * 2;
+            const offsetX = -logDisplace(crossTrackDist, config.crosshairMaxCrossTrack, maxPx);
+            const offsetY =  logDisplace(altDiff,        config.crosshairMaxAltDiff,    maxPx);
 
             const cx = hudCenterX + offsetX;
             const cy = height / 2 + offsetY;
