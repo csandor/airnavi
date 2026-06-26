@@ -1,15 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { parseKML } from './utils/KMLParser'
-
-const applyGeoidUndulation = (lines) => {
-    const u = config.geoidUndulation;
-    if (!u) return lines;
-    return lines.map(l => ({
-        ...l,
-        start: { ...l.start, alt: l.start.alt + u },
-        end:   { ...l.end,   alt: l.end.alt   + u },
-    }));
-};
 import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance } from './utils/GeoUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { flightLogger } from './utils/FlightLogger'
@@ -21,6 +11,16 @@ import SummaryDialog from './components/SummaryDialog'
 import Toast from './components/Toast'
 import config from './config'
 import './App.css'
+
+const applyGeoidUndulation = (lines) => {
+    const u = config.geoidUndulation;
+    if (!u) return lines;
+    return lines.map(l => ({
+        ...l,
+        start: { ...l.start, alt: l.start.alt + u },
+        end:   { ...l.end,   alt: l.end.alt   + u },
+    }));
+};
 
 function App() {
     const [completedLines, setCompletedLines] = useState(new Set())
