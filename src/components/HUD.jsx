@@ -15,7 +15,8 @@ const HUD = ({
     headingDiff,
     className,
     units = 'metric',
-    horizontalOffset = 0
+    horizontalOffset = 0,
+    radius = 60
 }) => {
 
     // Thresholds from config
@@ -60,8 +61,8 @@ const HUD = ({
                 top: '50%',
                 left: `calc(50% + ${horizontalOffset}px)`,
                 transform: 'translate(-50%, -50%)',
-                width: '120px',
-                height: '120px',
+                width: `${radius * 2}px`,
+                height: `${radius * 2}px`,
                 borderRadius: '50%',
                 border: `4px solid ${haloColor}`,
                 boxShadow: `0 0 20px ${haloColor}`,

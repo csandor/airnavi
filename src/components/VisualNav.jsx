@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, attitude }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, attitude, onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -55,39 +55,64 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
             const offsetX = -crossTrackDist * scale;
             const offsetY = altDiff * scale;
 
-            // --- Grouped Centering Calculation ---
-            const compassRadius = 72;
-            const maxHudWidth = 100; // Gate size
-            const spacing = 224; // Increased by one full diameter (144) from previous 80
-            const totalGroupWidth = (compassRadius * 2) + spacing + maxHudWidth;
+            // --- Dynamic sizing: fill available space without overlapping bottom data panel ---
+            // Bottom data panel is ~70px tall + 20px bottom margin = 90px reserved
+            const bottomReserved = 90;
+            const padding = 16;
+            const usableHeight = height - bottomReserved - padding * 2;
+            const maxRadiusFromHeight = usableHeight / 2;
 
+            // Both instruments are the same radius; spacing between their edges = one diameter
+            const BASE_RADIUS = 72;
+            const BASE_SPACING = BASE_RADIUS; // gap between the two instruments = one radius
+            const BASE_TOTAL_WIDTH = BASE_RADIUS * 2 + BASE_SPACING + BASE_RADIUS * 2;
+
+            const maxRadiusFromWidth = (width - padding * 2) * BASE_RADIUS / BASE_TOTAL_WIDTH;
+            const compassRadius = Math.floor(Math.min(maxRadiusFromHeight, maxRadiusFromWidth) * 0.8);
+            const scale_factor = compassRadius / BASE_RADIUS;
+            const spacing = compassRadius; // gap between instruments = one radius
+
+            const totalGroupWidth = compassRadius * 2 + spacing + compassRadius * 2;
             const groupLeft = (width - totalGroupWidth) / 2;
             const compassX = groupLeft + compassRadius;
-            const hudCenterX = groupLeft + (compassRadius * 2) + spacing + (maxHudWidth / 2);
+            const hudCenterX = groupLeft + compassRadius * 2 + spacing + compassRadius;
+
+            // Notify parent of gate center so HUD halo can be aligned to it
+            if (onLayout) onLayout({ hudCenterX, canvasWidth: width, compassRadius });
 
             const cx = hudCenterX + offsetX;
             const cy = height / 2 + offsetY;
 
-            // Draw a series of "gates" to simulate a tunnel
+            // Gate crosshair — circle with 4 tick lines extending inside and outside the rim
+            const tickInner = compassRadius * 0.55; // line starts inside the circle
+            const tickOuter = compassRadius * 1.2;  // line ends outside the circle
             ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 3;
-
-            // Gate 1 (Near)
-            const gateSize = 100;
-            ctx.strokeRect(cx - gateSize / 2, cy - gateSize / 2, gateSize, gateSize);
+            ctx.lineWidth = 2;
+            // Circle
+            ctx.beginPath();
+            ctx.arc(cx, cy, compassRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            // Four ticks
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - tickOuter); ctx.lineTo(cx, cy - tickInner); // top
+            ctx.moveTo(cx, cy + tickInner); ctx.lineTo(cx, cy + tickOuter); // bottom
+            ctx.moveTo(cx - tickOuter, cy); ctx.lineTo(cx - tickInner, cy); // left
+            ctx.moveTo(cx + tickInner, cy); ctx.lineTo(cx + tickOuter, cy); // right
+            ctx.stroke();
 
             // Draw lines connecting corners to a vanishing point?
             // Vanishing point would be further offset?
             // For simple visualization, just the gate moving relative to center is enough.
 
             // Center Crosshair (Aircraft)
+            const crossSize = Math.floor(20 * scale_factor);
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(hudCenterX - 20, height / 2);
-            ctx.lineTo(hudCenterX + 20, height / 2);
-            ctx.moveTo(hudCenterX, height / 2 - 20);
-            ctx.lineTo(hudCenterX, height / 2 + 20);
+            ctx.moveTo(hudCenterX - crossSize, height / 2);
+            ctx.lineTo(hudCenterX + crossSize, height / 2);
+            ctx.moveTo(hudCenterX, height / 2 - crossSize);
+            ctx.lineTo(hudCenterX, height / 2 + crossSize);
             ctx.stroke();
 
             // Text info
@@ -159,17 +184,18 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
                     const rad = deg * Math.PI / 180;
                     const isCardinal = deg % 90 === 0;
 
-                    // Ticks
+                    // Ticks — proportional to radius
+                    const tickOuter = radius;
+                    const tickInner = radius - (isCardinal ? radius * 0.17 : radius * 0.11);
                     ctx.beginPath();
-                    ctx.moveTo(Math.sin(rad) * radius, -Math.cos(rad) * radius);
-                    ctx.lineTo(Math.sin(rad) * (radius - (isCardinal ? 12 : 8)), -Math.cos(rad) * (radius - (isCardinal ? 12 : 8)));
+                    ctx.moveTo(Math.sin(rad) * tickOuter, -Math.cos(rad) * tickOuter);
+                    ctx.lineTo(Math.sin(rad) * tickInner, -Math.cos(rad) * tickInner);
                     ctx.stroke();
 
-                    // Text
+                    // Text — proportional to radius
+                    const textR = radius - radius * 0.28;
                     ctx.save();
-                    ctx.translate(Math.sin(rad) * (radius - 20), -Math.cos(rad) * (radius - 20));
-                    // Keep text upright relative to the rim (optional, but requested rim rotation points to N/E/S/W at top)
-                    // The user said "the rim should rotate", so the letters move with the rim.
+                    ctx.translate(Math.sin(rad) * textR, -Math.cos(rad) * textR);
 
                     let label = (deg / 10).toString();
                     if (deg === 0) label = 'N';
@@ -177,8 +203,9 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
                     if (deg === 180) label = 'S';
                     if (deg === 270) label = 'W';
 
+                    const fontSize = Math.max(8, Math.round(radius * 0.19));
                     ctx.fillStyle = isCardinal ? 'var(--color-success)' : 'white';
-                    ctx.font = isCardinal ? 'bold 14px Arial' : '10px Arial';
+                    ctx.font = isCardinal ? `bold ${fontSize}px Arial` : `${Math.max(7, Math.round(radius * 0.14))}px Arial`;
                     ctx.fillText(label, 0, 0);
                     ctx.restore();
                 }
@@ -217,14 +244,16 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
                     ctx.stroke();
 
                     // 2. Draw The Arrow (Anchored at the rim intersection)
+                    const arrowW = radius * 0.07;
+                    const arrowH = radius * 0.13;
                     ctx.save();
                     ctx.translate(0, yTop);
                     ctx.beginPath();
                     ctx.strokeStyle = '#ff0000';
                     ctx.lineWidth = 2;
-                    ctx.moveTo(-5, 9);
+                    ctx.moveTo(-arrowW, arrowH);
                     ctx.lineTo(0, 0);
-                    ctx.lineTo(5, 9);
+                    ctx.lineTo(arrowW, arrowH);
                     ctx.stroke();
                     ctx.restore();
 
@@ -232,15 +261,15 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
                     ctx.restore(); // Restore heading
                 }
 
-                // Static Center Airplane
-                drawAirplane(0, 0, 0.8);
+                // Static Center Airplane — scale with radius
+                drawAirplane(0, 0, radius / BASE_RADIUS * 0.8);
 
                 // Top Indicator (Lubber Line)
                 ctx.strokeStyle = 'var(--color-danger)';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.moveTo(0, -radius - 5);
-                ctx.lineTo(0, -radius + 15);
+                ctx.moveTo(0, -radius - radius * 0.07);
+                ctx.lineTo(0, -radius + radius * 0.21);
                 ctx.stroke();
 
                 ctx.restore();

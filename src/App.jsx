@@ -38,6 +38,10 @@ function App() {
     const greenCoverage = useRef(new Set()); // Track meters covered in green
     const prevAlongTrack = useRef(null); // Track previous position for delta
 
+    // HUD halo offset — updated by VisualNav when layout is computed
+    const [hudHorizontalOffset, setHudHorizontalOffset] = useState(184);
+    const [hudRadius, setHudRadius] = useState(120);
+
     // MiniMap dragging state
     const [miniMapPos, setMiniMapPos] = useState({ bottom: 20, right: 20 });
     const isDragging = useRef(false);
@@ -516,12 +520,17 @@ function App() {
                             heading={gpsData.heading}
                             targetHeading={renderHudData.targetHeading}
                             limits={config.limits}
+                            onLayout={({ hudCenterX, canvasWidth, compassRadius }) => {
+                                setHudHorizontalOffset(hudCenterX - canvasWidth / 2);
+                                setHudRadius(compassRadius);
+                            }}
                         />
                         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%' }}>
                             <HUD
                                 {...renderHudData}
                                 units={units}
-                                horizontalOffset={184}
+                                horizontalOffset={hudHorizontalOffset}
+                                radius={hudRadius}
                             />
                         </div>
 
