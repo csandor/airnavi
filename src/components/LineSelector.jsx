@@ -1,5 +1,6 @@
 import React from 'react';
 import HamburgerMenu from './HamburgerMenu';
+import { version } from '../../package.json';
 
 const LineSelector = ({
     lines,
@@ -38,6 +39,10 @@ const LineSelector = ({
             marginBottom: 'var(--spacing-md)',
             zIndex: 10
         }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                AirNavi v{version}
+            </div>
+
             <div style={{ flex: 1 }}>
                 <label style={{
                     display: 'block',
