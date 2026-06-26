@@ -14,19 +14,12 @@ export const parseKML = (kmlText) => {
     for (let i = 0; i < placemarks.length; i++) {
         const placemark = placemarks[i];
 
-        // Extract Sequence Number
-        let seq = null;
+        // Extract Sequence Number from first SimpleData field
         const simpleData = placemark.getElementsByTagName("SimpleData");
-        for (let j = 0; j < simpleData.length; j++) {
-            if (simpleData[j].getAttribute("name") === "seq") {
-                seq = parseInt(simpleData[j].textContent, 10);
-                break;
-            }
+        if (simpleData.length === 0) {
+            throw new Error(`Placemark ${i + 1} is missing a SimpleData field for sequence number.`);
         }
-
-        if (seq === null) {
-            throw new Error(`Placemark ${i + 1} is missing "<SimpleData name='seq'>".`);
-        }
+        const seq = parseInt(simpleData[0].textContent, 10);
 
         // Extract Coordinates
         const coordinatesTag = placemark.getElementsByTagName("coordinates")[0];

@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { parseKML } from './utils/KMLParser'
+
+const applyGeoidUndulation = (lines) => {
+    const u = config.geoidUndulation;
+    if (!u) return lines;
+    return lines.map(l => ({
+        ...l,
+        start: { ...l.start, alt: l.start.alt + u },
+        end:   { ...l.end,   alt: l.end.alt   + u },
+    }));
+};
 import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance } from './utils/GeoUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { flightLogger } from './utils/FlightLogger'
@@ -70,7 +80,7 @@ function App() {
         fetch(config.kmlFilePath)
             .then(res => res.text())
             .then(text => {
-                const parsedLines = parseKML(text)
+                const parsedLines = applyGeoidUndulation(parseKML(text))
                 setLines(parsedLines)
             })
             .catch(err => console.error("Failed to load KML", err))
@@ -84,7 +94,7 @@ function App() {
         reader.onload = (e) => {
             const content = e.target.result;
             try {
-                const parsedLines = parseKML(content);
+                const parsedLines = applyGeoidUndulation(parseKML(content));
                 setLines(parsedLines);
                 localStorage.setItem('customKml', content);
                 setCurrentLine(null);
@@ -312,6 +322,34 @@ function App() {
             showToast("Recording Started", "success");
         }
     };
+
+    // Auto-start recording when within green limits on all axes
+    useEffect(() => {
+        if (!currentLine || gpsData.lat === 0 || flightStatus !== 'idle') return;
+
+        const start = direction === 'normal' ? currentLine.start : currentLine.end;
+        const end = direction === 'normal' ? currentLine.end : currentLine.start;
+        const crossTrackDist = calculateCrossTrackDistance(gpsData, start, end);
+        const altDiff = calculateVerticalDeviation(gpsData, start, end);
+        const lineBearing = calculateBearing(start.lat, start.lon, end.lat, end.lon);
+        let headingDiff = gpsData.heading - lineBearing;
+        while (headingDiff < -180) headingDiff += 360;
+        while (headingDiff > 180) headingDiff -= 360;
+
+        const distToStart = calculateDistance(gpsData.lat, gpsData.lon, start.lat, start.lon) * 1000;
+        const distToEnd = calculateDistance(gpsData.lat, gpsData.lon, end.lat, end.lon) * 1000;
+        const nearEndpoint = distToStart <= config.limits.start_radius || distToEnd <= config.limits.start_radius;
+
+        if (nearEndpoint &&
+            Math.abs(crossTrackDist) <= config.limits.green &&
+            Math.abs(altDiff) <= config.limits.vertical_green &&
+            Math.abs(headingDiff) <= config.limits.heading_green) {
+            resetFlightState();
+            setFlightStatus('flying');
+            flightLogger.startFlight();
+            showToast("Recording Started", "success");
+        }
+    }, [gpsData, flightStatus, currentLine, direction]);
 
     // Logic Loop via Effect
     useEffect(() => {

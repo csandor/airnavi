@@ -4,6 +4,10 @@ const config = {
 
     // Data Source
     kmlFilePath: './lines.kml',
+    // Geoid undulation in meters for this area (geoid height above ellipsoid).
+    // KML altitudes are treated as ellipsoidal; subtract this to get MSL.
+    // e.g. undulation=40 means ellipsoidal 200m -> MSL 160m.
+    geoidUndulation: 43.1,
 
     // UI / UX
     summaryAutoCloseSeconds: 10,
@@ -26,7 +30,9 @@ const config = {
         green: 2,   // Within this cross-track error -> Green Halo & Completes Line
         yellow: 4,  // Within this -> Yellow Halo. Above -> Red.
         vertical_green: 2, // Within this altitude error -> Green
-        vertical_yellow: 4 // Within this -> Yellow. Above -> Red.
+        vertical_yellow: 4, // Within this -> Yellow. Above -> Red.
+        heading_green: 5,  // Within this heading error (degrees) -> auto-start recording
+        start_radius: 5   // Must be within this distance (meters) of start or end point to auto-start recording
     }
 };
 
