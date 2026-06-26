@@ -114,8 +114,8 @@ const HUD = ({
                 <DataField
                     label="Alt Diff"
                     value={units === 'metric'
-                        ? `${Math.abs(altDiff).toFixed(1)} m`
-                        : `${(Math.abs(altDiff) * 3.28084).toFixed(0)} ft`}
+                        ? `${altDiff >= 0 ? '+' : ''}${altDiff.toFixed(1)} m`
+                        : `${altDiff >= 0 ? '+' : ''}${(altDiff * 3.28084).toFixed(0)} ft`}
                     color={Math.abs(altDiff) > 10 ? 'var(--color-warning)' : 'white'}
                 />
 

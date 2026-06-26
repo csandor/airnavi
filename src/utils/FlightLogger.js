@@ -35,8 +35,8 @@ export class FlightLogger {
         if (Math.abs(data.crossTrackDist) > this.stats.maxDistanceToLine) {
             this.stats.maxDistanceToLine = Math.abs(data.crossTrackDist);
         }
-        if (Math.abs(data.altDiff) > this.stats.maxAltDiff) {
-            this.stats.maxAltDiff = Math.abs(data.altDiff);
+        if (Math.abs(data.altDiff) > Math.abs(this.stats.maxAltDiff)) {
+            this.stats.maxAltDiff = data.altDiff;
         }
         if (data.speed > this.stats.maxSpeed) {
             this.stats.maxSpeed = data.speed;
@@ -90,7 +90,7 @@ export class FlightLogger {
             session.direction,
             session.completionPct,
             session.stats.maxDistanceToLine.toFixed(1),
-            session.stats.maxAltDiff.toFixed(1),
+            (session.stats.maxAltDiff >= 0 ? '+' : '') + session.stats.maxAltDiff.toFixed(1),
             (session.stats.maxSpeed * 3.6).toFixed(1),
             session.stats.maxHeadingDiff.toFixed(1)
         ]);
