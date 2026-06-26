@@ -7,6 +7,7 @@ export class FlightLogger {
     reset() {
         this.startTime = null;
         this.endTime = null;
+        this.path = [];
         this.stats = {
             maxDistanceToLine: 0,
             maxAltDiff: 0,
@@ -20,6 +21,11 @@ export class FlightLogger {
     startFlight() {
         this.reset(); // Ensure clean state for new flight
         this.startTime = new Date();
+    }
+
+    recordPoint(gpsData) {
+        if (!this.startTime) return;
+        this.path.push({ lat: gpsData.lat, lon: gpsData.lon, alt: gpsData.alt });
     }
 
     updateStats(data) {
@@ -52,7 +58,8 @@ export class FlightLogger {
             duration: (this.endTime - this.startTime) / 1000,
             completionPct: completionPct.toFixed(1),
             direction: direction === 'normal' ? 'Forward' : 'Backward',
-            stats: { ...this.stats }
+            stats: { ...this.stats },
+            path: [...this.path]
         });
     }
 

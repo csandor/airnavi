@@ -6,6 +6,7 @@ const HamburgerMenu = ({
     units,
     onToggleUnits,
     onDownloadCSV,
+    onDownloadKMZ,
     onKmlImport,
     onReset,
     hasCustomKml,
@@ -84,6 +85,10 @@ const HamburgerMenu = ({
                     <MenuButton
                         onClick={() => handleAction(onDownloadCSV)}
                         label="📥 Export CSV"
+                    />
+                    <MenuButton
+                        onClick={() => handleAction(onDownloadKMZ)}
+                        label="📥 Export KMZ"
                     />
 
                     <div style={{ position: 'relative' }}>

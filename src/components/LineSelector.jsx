@@ -18,6 +18,7 @@ const LineSelector = ({
     units,
     onToggleUnits,
     onDownloadCSV,
+    onDownloadKMZ,
     onKmlImport,
     onReset,
     hasCustomKml,
@@ -169,6 +170,7 @@ const LineSelector = ({
                     units={units}
                     onToggleUnits={onToggleUnits}
                     onDownloadCSV={onDownloadCSV}
+                    onDownloadKMZ={onDownloadKMZ}
                     onKmlImport={onKmlImport}
                     onReset={onReset}
                     hasCustomKml={hasCustomKml}

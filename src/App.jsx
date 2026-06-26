@@ -3,6 +3,7 @@ import { parseKML } from './utils/KMLParser'
 import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance } from './utils/GeoUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { flightLogger } from './utils/FlightLogger'
+import { downloadKMZ } from './utils/KMZExporter'
 import LineSelector from './components/LineSelector'
 import HUD from './components/HUD'
 import VisualNav from './components/VisualNav'
@@ -405,6 +406,7 @@ function App() {
 
         // Update Logger
         flightLogger.updateStats(currentHudData);
+        flightLogger.recordPoint(gpsData);
 
         // Check Completion (Crossing Endpoint Plane - 100% Progress)
         // Transition Requirement: Must have been before the plane (prevAlongTrack < totalLen)
@@ -488,6 +490,7 @@ function App() {
                     units={units}
                     onToggleUnits={() => setUnits(u => u === 'metric' ? 'imperial' : 'metric')}
                     onDownloadCSV={() => flightLogger.downloadCSV()}
+                    onDownloadKMZ={() => downloadKMZ(flightLogger.history)}
                     onKmlImport={handleKmlImport}
                     onReset={clearCustomKml}
                     hasCustomKml={!!localStorage.getItem('customKml')}
