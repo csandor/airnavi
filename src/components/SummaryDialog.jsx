@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import config from '../config';
 
 const SummaryDialog = ({ session, onKeep, onReject }) => {
@@ -7,17 +7,19 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
     const isSuccess = completion >= config.completionThreshold;
     const defaultAction = isSuccess ? 'Keep' : 'Reject';
 
+    // Use refs so the interval closure always calls the latest callbacks
+    // without restarting the timer when parent re-renders pass new function references
+    const onKeepRef = useRef(onKeep);
+    const onRejectRef = useRef(onReject);
+    useEffect(() => { onKeepRef.current = onKeep; }, [onKeep]);
+    useEffect(() => { onRejectRef.current = onReject; }, [onReject]);
+
     useEffect(() => {
         const timer = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    // Execute default action
-                    if (isSuccess) {
-                        onKeep();
-                    } else {
-                        onReject();
-                    }
+                    if (isSuccess) onKeepRef.current(); else onRejectRef.current();
                     return 0;
                 }
                 return prev - 1;
@@ -25,7 +27,8 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [isSuccess, onKeep, onReject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isSuccess]); // intentionally omit callbacks — stabilised via refs above
 
     return (
         <div className="glass-panel" style={{

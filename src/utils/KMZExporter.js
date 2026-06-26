@@ -178,7 +178,10 @@ export function downloadKMZ(history) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `flight_logs_${new Date().toISOString().slice(0, 10)}.kmz`;
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const time = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+    a.download = `flight_logs_${date}_${time}.kmz`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

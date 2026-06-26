@@ -406,7 +406,7 @@ function App() {
 
         // Update Logger
         flightLogger.updateStats(currentHudData);
-        flightLogger.recordPoint(gpsData);
+        flightLogger.recordPoint({ ...gpsData, alt: gpsData.alt - config.geoidUndulation });
 
         // Check Completion (Crossing Endpoint Plane - 100% Progress)
         // Transition Requirement: Must have been before the plane (prevAlongTrack < totalLen)
