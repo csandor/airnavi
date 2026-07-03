@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>Erdokurt.kml</name>
+	<StyleMap id="m_ylw-pushpin">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#s_ylw-pushpin</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#s_ylw-pushpin_hl</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="s_ylw-pushpin">
+		<IconStyle>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+	</Style>
+	<Style id="s_ylw-pushpin_hl">
+		<IconStyle>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+	</Style>
+	<Schema name="Erdokurt" id="Erdokurt">
+		<SimpleField name="seq" type="int"></SimpleField>
+	</Schema>
+	<Folder>
+		<name>Erdokurt</name>
+		<open>1</open>
+		<Style>
+			<ListStyle>
+				<listItemType>check</listItemType>
+				<bgColor>00ffffff</bgColor>
+				<maxSnippetLines>2</maxSnippetLines>
+			</ListStyle>
+		</Style>
+		<Placemark>
+			<name>Névtelen Útvonal</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData schemaUrl="#Erdokurt">
+				<SimpleData name="seq">1</SimpleData>
+			</SchemaData></ExtendedData>
+			<LineString>
+				<tessellate>1</tessellate>
+				<altitudeMode>absolute</altitudeMode>
+				<coordinates>
+					19.45870148666809,47.77094042032574,160 19.45891680489016,47.77126558499545,160
+				</coordinates>
+			</LineString>
+		</Placemark>
+		<Placemark>
+			<name>Névtelen Útvonal</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData schemaUrl="#Erdokurt">
+				<SimpleData name="seq">2</SimpleData>
+			</SchemaData></ExtendedData>
+			<LineString>
+				<tessellate>1</tessellate>
+				<altitudeMode>absolute</altitudeMode>
+				<coordinates>
+					19.45865647315257,47.77096333135188,160 19.45887502444837,47.77128710829298,160
+				</coordinates>
+			</LineString>
+		</Placemark>
+		<Placemark>
+			<name>Névtelen Útvonal</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData schemaUrl="#Erdokurt">
+				<SimpleData name="seq">3</SimpleData>
+			</SchemaData></ExtendedData>
+			<LineString>
+				<tessellate>1</tessellate>
+				<altitudeMode>absolute</altitudeMode>
+				<coordinates>
+					19.45876166395396,47.77091660199122,160 19.45897482551037,47.77123256370125,160
+				</coordinates>
+			</LineString>
+		</Placemark>
+		<Placemark>
+			<name>Névtelen Útvonal</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData schemaUrl="#Erdokurt">
+				<SimpleData name="seq">4</SimpleData>
+			</SchemaData></ExtendedData>
+			<LineString>
+				<tessellate>1</tessellate>
+				<altitudeMode>absolute</altitudeMode>
+				<coordinates>
+					19.45880601949197,47.77089673733801,160 19.45902940476449,47.77120460455116,160
+				</coordinates>
+			</LineString>
+		</Placemark>
+		<atom:link rel="app" href="https://www.google.com/earth/about/versions/#earth-pro" title="Google Earth Pro 7.3.7.1155"></atom:link>
+	</Folder>
+</Document>
+</kml>

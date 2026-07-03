@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document id="root_doc">
+	<name>BPXITeszt_repvonalak_extra.kml</name>
+	<atom:link rel="app" href="https://www.google.com/earth/about/versions/#earth-pro" title="Google Earth Pro 7.3.7.1155"></atom:link>
+	<StyleMap id="m_ylw-pushpin">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#s_ylw-pushpin</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#s_ylw-pushpin_hl</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="s_ylw-pushpin">
+		<IconStyle>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+	</Style>
+	<Style id="s_ylw-pushpin_hl">
+		<IconStyle>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+	</Style>
+	<Folder>
+		<name>bpxi_test_repvonalak_z</name>
+		<Placemark id="bpxi_test_repvonalak_z.1">
+			<name>1 - 1</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData><SimpleData name="ID1">1</SimpleData></SchemaData></ExtendedData>
+			<MultiGeometry>
+				<altitudeMode>absolute</altitudeMode>
+				<LineString>
+					<altitudeMode>absolute</altitudeMode>
+					<coordinates>
+						19.0447068581315,47.4501805216585,455 19.0466351727155,47.4557742677475,455 
+					</coordinates>
+				</LineString>
+			</MultiGeometry>
+		</Placemark>
+		<Placemark id="bpxi_test_repvonalak_z.2">
+			<name>1 - 2</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData><SimpleData name="ID1">2</SimpleData></SchemaData></ExtendedData>
+			<MultiGeometry>
+				<altitudeMode>absolute</altitudeMode>
+				<LineString>
+					<altitudeMode>absolute</altitudeMode>
+					<coordinates>
+						19.0459774367189,47.4499790059154,455 19.0479058780472,47.4555727310442,455 
+					</coordinates>
+				</LineString>
+			</MultiGeometry>
+		</Placemark>
+		<Placemark id="bpxi_test_repvonalak_z.3">
+			<name>1 - 3</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData><SimpleData name="ID1">3</SimpleData></SchemaData></ExtendedData>
+			<MultiGeometry>
+				<altitudeMode>absolute</altitudeMode>
+				<LineString>
+					<altitudeMode>absolute</altitudeMode>
+					<coordinates>
+						19.0472480056472,47.44977747615049,455 19.0491765737168,47.4553711803177,455 
+					</coordinates>
+				</LineString>
+			</MultiGeometry>
+		</Placemark>
+		<Placemark id="bpxi_test_repvonalak_z.4">
+			<name>1 - 4</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData><SimpleData name="ID1">4</SimpleData></SchemaData></ExtendedData>
+			<MultiGeometry>
+				<altitudeMode>absolute</altitudeMode>
+				<LineString>
+					<altitudeMode>absolute</altitudeMode>
+					<coordinates>
+						19.0485185649158,47.449575932364,455 19.0504472597236,47.45516961556831,455 
+					</coordinates>
+				</LineString>
+			</MultiGeometry>
+		</Placemark>
+		<Placemark id="bpxi_test_repvonalak_z.5">
+			<name>1 - 5</name>
+			<styleUrl>#m_ylw-pushpin</styleUrl>
+			<ExtendedData><SchemaData><SimpleData name="ID1">5</SimpleData></SchemaData></ExtendedData>
+			<MultiGeometry>
+				<altitudeMode>absolute</altitudeMode>
+				<LineString>
+					<altitudeMode>absolute</altitudeMode>
+					<coordinates>
+						19.049789114524,47.4493743745561,455 19.0517179360672,47.4549680367961,455 
+					</coordinates>
+				</LineString>
+			</MultiGeometry>
+		</Placemark>
+	</Folder>
+</Document>
+</kml>

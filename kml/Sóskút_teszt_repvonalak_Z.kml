@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="sskt_teszt_repvonalak_z" id="sskt_teszt_repvonalak_z">
+	<SimpleField name="ID1" type="float"></SimpleField>
+</Schema>
+<Folder><name>sskt_teszt_repvonalak_z</name>
+  <Placemark id="sskt_teszt_repvonalak_z.1">
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#sskt_teszt_repvonalak_z">
+		<SimpleData name="ID1">2</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>18.8073066109956,47.3883062833032,500 18.8092076469084,47.3939040661515,500</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark id="sskt_teszt_repvonalak_z.2">
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#sskt_teszt_repvonalak_z">
+		<SimpleData name="ID1">3</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>18.8085766038587,47.3881073831324,500 18.8104777665976,47.3937051452829,500</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark id="sskt_teszt_repvonalak_z.3">
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#sskt_teszt_repvonalak_z">
+		<SimpleData name="ID1">4</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>18.8098465872039,47.3879084689372,500 18.8117478767661,47.3935062103886,500</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark id="sskt_teszt_repvonalak_z.4">
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#sskt_teszt_repvonalak_z">
+		<SimpleData name="ID1">5</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>18.8111165610307,47.387709540718,500 18.8130179774132,47.3933072614688,500</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark id="sskt_teszt_repvonalak_z.5">
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#sskt_teszt_repvonalak_z">
+		<SimpleData name="ID1">6</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>18.8123865253386,47.3875105984747,500 18.8142880685385,47.3931082985236,500</coordinates></LineString></MultiGeometry>
+  </Placemark>
+</Folder>
+</Document></kml>
