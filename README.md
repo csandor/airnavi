@@ -144,6 +144,15 @@ Menu → **Units** toggles between metric (m, km/h) and imperial (ft, knots).
 ### Mini-map
 A draggable map overlay shows the flight lines and current position. Toggle it from the menu.
 
+### Full-screen map
+Tap the map icon next to the record button (it becomes a compass icon while the map is shown) to switch the instrument area to a full-screen OpenStreetMap view rendered with MapLibre GL. The top menu bar and the distance readouts stay visible.
+
+- Every flight line from the loaded KML is drawn and labeled with its sequence number.
+- The selected line is highlighted (magenta with a dark halo) with green/red start/end markers; other lines are shown in cyan.
+- Tap any line (or its label) on the map to select it — same effect as picking it from the Line Selector dropdown.
+- The current aircraft position and flown track are shown, and the view auto-fits to the selected line (or to all lines, if none is selected) using the same bounds + padding logic as the mini-map.
+- Tap the compass icon to switch back to the HUD view.
+
 ### Exporting results
 - **Export CSV** — downloads a `.csv` file with one row per completed line (see [CSV Export](#csv-export)).
 - **Export KMZ** — downloads a KMZ file with the flight tracks.
