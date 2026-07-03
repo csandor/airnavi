@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # example and test kmls
 test-kml/*
+public/kml/*
 
 # node_modules
 node_modules

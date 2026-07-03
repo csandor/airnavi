@@ -10,10 +10,13 @@ const HamburgerMenu = ({
     onKmlImport,
     onReset,
     hasCustomKml,
+    bundledKmlFiles = [],
+    onBundledKmlSelect,
     showMiniMap,
     onToggleMiniMap
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [showKmlSubmenu, setShowKmlSubmenu] = useState(false);
     const menuRef = useRef(null);
 
     // Close when clicking outside
@@ -27,7 +30,10 @@ const HamburgerMenu = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const toggleMenu = () => setIsOpen(!isOpen);
+    const toggleMenu = () => {
+        setIsOpen(!isOpen);
+        setShowKmlSubmenu(false);
+    };
 
     const handleAction = (action) => {
         action();
@@ -107,6 +113,33 @@ const HamburgerMenu = ({
                             />
                         </MenuButton>
                     </div>
+
+                    {bundledKmlFiles.length > 0 && (
+                        <div style={{ position: 'relative' }}>
+                            <MenuButton
+                                onClick={() => setShowKmlSubmenu(prev => !prev)}
+                                label={`🗂 Sample KMLs ${showKmlSubmenu ? '▾' : '▸'}`}
+                            />
+                            {showKmlSubmenu && (
+                                <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                    paddingLeft: '12px',
+                                    marginTop: '2px',
+                                    borderLeft: '1px solid rgba(255,255,255,0.1)'
+                                }}>
+                                    {bundledKmlFiles.map(filename => (
+                                        <MenuButton
+                                            key={filename}
+                                            onClick={() => handleAction(() => onBundledKmlSelect(filename))}
+                                            label={filename.replace(/\.kml$/i, '')}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <MenuButton
                         onClick={() => handleAction(onToggleMiniMap)}

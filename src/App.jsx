@@ -35,6 +35,7 @@ function App() {
     const [units, setUnits] = useState('metric'); // 'metric' or 'imperial'
     const [showSummary, setShowSummary] = useState(false);
     const [lastSession, setLastSession] = useState(null);
+    const [bundledKmlFiles, setBundledKmlFiles] = useState([]);
     const completionLock = useRef(false); // Lock to prevent double logging
     const greenCoverage = useRef(new Set()); // Track meters covered in green
     const prevAlongTrack = useRef(null); // Track previous position for delta
@@ -90,6 +91,31 @@ function App() {
             })
             .catch(err => console.error("Failed to load KML", err))
     }, [])
+
+    useEffect(() => {
+        fetch(`${config.bundledKmlDir}manifest.json`)
+            .then(res => res.json())
+            .then(files => setBundledKmlFiles(files))
+            .catch(err => console.error("Failed to load bundled KML list", err))
+    }, [])
+
+    const handleBundledKmlSelect = (filename) => {
+        if (!filename) return;
+        fetch(`${config.bundledKmlDir}${filename}`)
+            .then(res => res.text())
+            .then(content => {
+                const parsedLines = applyGeoidUndulation(parseKML(content));
+                setLines(parsedLines);
+                localStorage.setItem('customKml', content);
+                setCurrentLine(null);
+                resetFlightState();
+                showToast(`Loaded ${filename}`, "success");
+            })
+            .catch(err => {
+                showToast(`Error: ${err.message}`, "error");
+                console.error(err);
+            });
+    };
 
     const handleKmlImport = (event) => {
         const file = event.target.files[0];
@@ -494,6 +520,8 @@ function App() {
                     onKmlImport={handleKmlImport}
                     onReset={clearCustomKml}
                     hasCustomKml={!!localStorage.getItem('customKml')}
+                    bundledKmlFiles={bundledKmlFiles}
+                    onBundledKmlSelect={handleBundledKmlSelect}
                     // MiniMap Props
                     showMiniMap={showMiniMap}
                     onToggleMiniMap={toggleMiniMap}

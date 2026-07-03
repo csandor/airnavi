@@ -23,6 +23,8 @@ const LineSelector = ({
     onKmlImport,
     onReset,
     hasCustomKml,
+    bundledKmlFiles,
+    onBundledKmlSelect,
     // MiniMap Props
     showMiniMap,
     onToggleMiniMap
@@ -179,6 +181,8 @@ const LineSelector = ({
                     onKmlImport={onKmlImport}
                     onReset={onReset}
                     hasCustomKml={hasCustomKml}
+                    bundledKmlFiles={bundledKmlFiles}
+                    onBundledKmlSelect={onBundledKmlSelect}
                     showMiniMap={showMiniMap}
                     onToggleMiniMap={onToggleMiniMap}
                 />
