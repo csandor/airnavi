@@ -8,6 +8,8 @@ import LineSelector from './components/LineSelector'
 import HUD from './components/HUD'
 import VisualNav from './components/VisualNav'
 import MiniMap from './components/MiniMap'
+import FullMap from './components/FullMap'
+import DistanceDisplay from './components/DistanceDisplay'
 import SummaryDialog from './components/SummaryDialog'
 import Toast from './components/Toast'
 import config from './config'
@@ -49,6 +51,7 @@ function App() {
     const isDragging = useRef(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const [showMiniMap, setShowMiniMap] = useState(true);
+    const [mapMaximized, setMapMaximized] = useState(false);
 
     const showToast = (message, type = 'info') => {
         setNotification({ message, type });
@@ -525,6 +528,9 @@ function App() {
                     // MiniMap Props
                     showMiniMap={showMiniMap}
                     onToggleMiniMap={toggleMiniMap}
+                    // Map View Props
+                    mapMaximized={mapMaximized}
+                    onToggleMapMaximized={() => setMapMaximized(prev => !prev)}
                 />
             </div>
 
@@ -537,13 +543,32 @@ function App() {
             )}
 
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(to bottom, #1a2a3a 0%, #161b22 100%)' }}>
-                {!currentLine && (
+                {!currentLine && !mapMaximized && (
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', opacity: 0.5, zIndex: 50 }}>
                         <p>Select a flight line to begin navigation.</p>
                     </div>
                 )}
 
-                {currentLine && (
+                {mapMaximized && (
+                    <>
+                        <FullMap
+                            lines={lines}
+                            currentLine={currentLine}
+                            gpsData={gpsData}
+                            direction={direction}
+                            onLineSelect={handleLineSelect}
+                        />
+                        {currentLine && (
+                            <DistanceDisplay
+                                {...renderHudData}
+                                units={units}
+                                style={{ zIndex: 30 }}
+                            />
+                        )}
+                    </>
+                )}
+
+                {currentLine && !mapMaximized && (
                     <>
                         <VisualNav
                             crossTrackDist={renderHudData.crossTrackDist}

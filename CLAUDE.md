@@ -3,6 +3,15 @@
 ## Project Overview
 A React PWA (Vite) for aerial survey navigation. The pilot selects a flight line from a KML file; the app tracks cross-track, vertical, and heading deviation in real time and auto-records when the aircraft is on-line.
 
+## Versioning
+Version is tracked in `package.json`. Use these scripts to bump and tag in one step:
+```
+npm run version:patch   # 1.0.0 -> 1.0.1
+npm run version:minor   # 1.0.0 -> 1.1.0
+npm run version:major   # 1.0.0 -> 2.0.0
+```
+Each script bumps `package.json`, commits with `chore: bump version to X.Y.Z`, and creates a `vX.Y.Z` git tag. Push the tag manually afterwards: `git push origin vX.Y.Z`.
+
 ## Running & Building
 ```
 npm run dev       # dev server at http://localhost:5173

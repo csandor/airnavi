@@ -42,7 +42,9 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
             maxWidth: '400px',
             textAlign: 'center',
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-            border: `1px solid ${isSuccess ? 'var(--color-success)' : 'var(--color-danger)'}`
+            border: `1px solid ${isSuccess ? 'var(--color-success)' : 'var(--color-danger)'}`,
+            background: 'hsl(var(--color-bg-secondary))',
+            backdropFilter: 'none',
         }}>
             <h2 style={{ marginBottom: 'var(--spacing-md)' }}>Flight Summary</h2>
 

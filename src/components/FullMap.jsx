@@ -1,0 +1,295 @@
+import React, { useRef, useEffect, useState } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+
+const OSM_STYLE = {
+    version: 8,
+    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+    sources: {
+        osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '&copy; OpenStreetMap contributors'
+        }
+    },
+    layers: [
+        { id: 'osm', type: 'raster', source: 'osm' }
+    ]
+};
+
+const lineToGeoJSON = (line) => ({
+    type: 'Feature',
+    properties: { seq: line.seq },
+    geometry: {
+        type: 'LineString',
+        coordinates: [[line.start.lon, line.start.lat], [line.end.lon, line.end.lat]]
+    }
+});
+
+const lineToLabelGeoJSON = (line) => ({
+    type: 'Feature',
+    properties: { seq: line.seq, label: String(line.seq) },
+    geometry: {
+        type: 'Point',
+        coordinates: [(line.start.lon + line.end.lon) / 2, (line.start.lat + line.end.lat) / 2]
+    }
+});
+
+const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect }) => {
+    const containerRef = useRef(null);
+    const mapRef = useRef(null);
+    const [loaded, setLoaded] = useState(false);
+
+    // Init map once
+    useEffect(() => {
+        const map = new maplibregl.Map({
+            container: containerRef.current,
+            style: OSM_STYLE,
+            attributionControl: { compact: true }
+        });
+        mapRef.current = map;
+
+        map.on('load', () => {
+            map.addSource('all-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'all-lines-layer',
+                type: 'line',
+                source: 'all-lines',
+                paint: { 'line-color': '#00e5ff', 'line-width': 4, 'line-opacity': 0.9 }
+            });
+
+            map.addSource('line-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'line-labels-layer',
+                type: 'symbol',
+                source: 'line-labels',
+                layout: {
+                    'text-field': ['get', 'label'],
+                    'text-size': 16,
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-allow-overlap': true
+                },
+                paint: {
+                    'text-color': '#ffffff',
+                    'text-halo-color': '#000000',
+                    'text-halo-width': 2
+                }
+            });
+
+            map.addSource('current-line', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'current-line-halo-layer',
+                type: 'line',
+                source: 'current-line',
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+                paint: { 'line-color': '#000000', 'line-width': 10, 'line-opacity': 0.5 }
+            });
+            map.addLayer({
+                id: 'current-line-layer',
+                type: 'line',
+                source: 'current-line',
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+                paint: { 'line-color': '#ff00c8', 'line-width': 6 }
+            });
+
+            map.addSource('endpoints', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'endpoints-layer',
+                type: 'circle',
+                source: 'endpoints',
+                paint: {
+                    'circle-radius': 6,
+                    'circle-color': ['get', 'color'],
+                    'circle-stroke-color': '#000',
+                    'circle-stroke-width': 1
+                }
+            });
+
+            map.addSource('path', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'path-layer',
+                type: 'line',
+                source: 'path',
+                paint: { 'line-color': 'rgba(255, 200, 0, 0.6)', 'line-width': 2 }
+            });
+
+            map.addSource('aircraft', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'aircraft-layer',
+                type: 'circle',
+                source: 'aircraft',
+                paint: {
+                    'circle-radius': 7,
+                    'circle-color': '#00ccff',
+                    'circle-stroke-color': '#000',
+                    'circle-stroke-width': 1
+                }
+            });
+
+            setLoaded(true);
+        });
+
+        return () => {
+            map.remove();
+            mapRef.current = null;
+        };
+    }, []);
+
+    // Resize map when container size changes (e.g. on maximize)
+    useEffect(() => {
+        if (!mapRef.current) return;
+        const ro = new ResizeObserver(() => mapRef.current && mapRef.current.resize());
+        ro.observe(containerRef.current);
+        return () => ro.disconnect();
+    }, []);
+
+    // Draw all lines (dimmed) with number labels
+    useEffect(() => {
+        if (!loaded || !mapRef.current) return;
+        const map = mapRef.current;
+        const features = (lines || []).map(lineToGeoJSON);
+        map.getSource('all-lines').setData({ type: 'FeatureCollection', features });
+        map.getSource('line-labels').setData({ type: 'FeatureCollection', features: (lines || []).map(lineToLabelGeoJSON) });
+    }, [loaded, lines]);
+
+    // Tap-to-select: click a line (or its label) to select it
+    useEffect(() => {
+        if (!loaded || !mapRef.current || !onLineSelect) return;
+        const map = mapRef.current;
+        const layerIds = ['all-lines-layer', 'line-labels-layer', 'current-line-layer'];
+
+        const handleClick = (e) => {
+            const features = map.queryRenderedFeatures(e.point, { layers: layerIds });
+            if (!features.length) return;
+            const seq = features[0].properties.seq;
+            const line = (lines || []).find(l => l.seq === seq);
+            if (line) onLineSelect(line);
+        };
+
+        const handleEnter = () => { map.getCanvas().style.cursor = 'pointer'; };
+        const handleLeave = () => { map.getCanvas().style.cursor = ''; };
+
+        map.on('click', handleClick);
+        layerIds.forEach(id => {
+            map.on('mouseenter', id, handleEnter);
+            map.on('mouseleave', id, handleLeave);
+        });
+
+        return () => {
+            map.off('click', handleClick);
+            layerIds.forEach(id => {
+                map.off('mouseenter', id, handleEnter);
+                map.off('mouseleave', id, handleLeave);
+            });
+        };
+    }, [loaded, lines, onLineSelect]);
+
+    // Draw current line (highlighted), endpoints, path history, aircraft, and fit bounds
+    // using the same bounds + 20% padding strategy as MiniMap.
+    const pathRef = useRef([]);
+    useEffect(() => {
+        pathRef.current = [];
+    }, [currentLine]);
+
+    useEffect(() => {
+        if (!loaded || !mapRef.current || !gpsData || gpsData.lat === 0) return;
+        const prev = pathRef.current[pathRef.current.length - 1];
+        if (!prev || Math.hypot(prev.lat - gpsData.lat, prev.lon - gpsData.lon) > 0.00003) {
+            pathRef.current = [...pathRef.current, { lat: gpsData.lat, lon: gpsData.lon }];
+        }
+    }, [loaded, gpsData]);
+
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!loaded || !map) return;
+
+        if (!currentLine) {
+            map.getSource('current-line').setData({ type: 'FeatureCollection', features: [] });
+            map.getSource('endpoints').setData({ type: 'FeatureCollection', features: [] });
+            map.getSource('path').setData({ type: 'FeatureCollection', features: [] });
+            map.getSource('aircraft').setData({ type: 'FeatureCollection', features: [] });
+
+            if (lines && lines.length > 0) {
+                let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+                lines.forEach(l => {
+                    [l.start, l.end].forEach(p => {
+                        minLat = Math.min(minLat, p.lat);
+                        maxLat = Math.max(maxLat, p.lat);
+                        minLon = Math.min(minLon, p.lon);
+                        maxLon = Math.max(maxLon, p.lon);
+                    });
+                });
+                const latRange = maxLat - minLat || 0.01;
+                const lonRange = maxLon - minLon || 0.01;
+                const paddingLat = latRange * 0.2;
+                const paddingLon = lonRange * 0.2;
+                map.fitBounds(
+                    [[minLon - paddingLon, minLat - paddingLat], [maxLon + paddingLon, maxLat + paddingLat]],
+                    { animate: false }
+                );
+            }
+            return;
+        }
+
+        const start = direction === 'normal' ? currentLine.start : currentLine.end;
+        const end = direction === 'normal' ? currentLine.end : currentLine.start;
+
+        map.getSource('current-line').setData({ type: 'FeatureCollection', features: [lineToGeoJSON({ start, end, seq: currentLine.seq })] });
+
+        map.getSource('endpoints').setData({
+            type: 'FeatureCollection',
+            features: [
+                { type: 'Feature', properties: { color: '#00ff00' }, geometry: { type: 'Point', coordinates: [start.lon, start.lat] } },
+                { type: 'Feature', properties: { color: '#ff0000' }, geometry: { type: 'Point', coordinates: [end.lon, end.lat] } }
+            ]
+        });
+
+        const path = pathRef.current;
+        map.getSource('path').setData({
+            type: 'FeatureCollection',
+            features: path.length > 1 ? [{
+                type: 'Feature',
+                properties: {},
+                geometry: { type: 'LineString', coordinates: path.map(p => [p.lon, p.lat]) }
+            }] : []
+        });
+
+        const hasAircraft = gpsData && gpsData.lat !== 0;
+        map.getSource('aircraft').setData({
+            type: 'FeatureCollection',
+            features: hasAircraft ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [gpsData.lon, gpsData.lat] } }] : []
+        });
+
+        // Bounds: start, end, and aircraft position, padded 20% — same strategy as MiniMap.
+        let minLat = Math.min(start.lat, end.lat);
+        let maxLat = Math.max(start.lat, end.lat);
+        let minLon = Math.min(start.lon, end.lon);
+        let maxLon = Math.max(start.lon, end.lon);
+
+        if (hasAircraft) {
+            minLat = Math.min(minLat, gpsData.lat);
+            maxLat = Math.max(maxLat, gpsData.lat);
+            minLon = Math.min(minLon, gpsData.lon);
+            maxLon = Math.max(maxLon, gpsData.lon);
+        }
+
+        const latRange = maxLat - minLat || 0.01;
+        const lonRange = maxLon - minLon || 0.01;
+        const paddingLat = latRange * 0.2;
+        const paddingLon = lonRange * 0.2;
+
+        map.fitBounds(
+            [[minLon - paddingLon, minLat - paddingLat], [maxLon + paddingLon, maxLat + paddingLat]],
+            { animate: false }
+        );
+    }, [loaded, currentLine, gpsData, direction, lines]);
+
+    return (
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+            <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+        </div>
+    );
+};
+
+export default FullMap;
