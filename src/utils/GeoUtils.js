@@ -81,6 +81,31 @@ export const calculateAlongTrackDistance = (point, lineStart, lineEnd) => {
 };
 
 /**
+ * Calculates the destination point given a start point, bearing, and distance.
+ * @param {number} lat - Start latitude (degrees)
+ * @param {number} lon - Start longitude (degrees)
+ * @param {number} bearingDeg - Bearing (degrees)
+ * @param {number} distanceMeters - Distance to travel (meters)
+ * @returns {{lat: number, lon: number}}
+ */
+export const destinationPoint = (lat, lon, bearingDeg, distanceMeters) => {
+    const d = distanceMeters / 1000 / EARTH_RADIUS_KM;
+    const brng = toRad(bearingDeg);
+    const lat1 = toRad(lat);
+    const lon1 = toRad(lon);
+
+    const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(brng)
+    );
+    const lon2 = lon1 + Math.atan2(
+        Math.sin(brng) * Math.sin(d) * Math.cos(lat1),
+        Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+    return { lat: toDeg(lat2), lon: toDeg(lon2) };
+};
+
+/**
  * Calculates vertical deviation (altitude difference) expected at the projected point on the line.
  * Assumes linear altitude change between start and end.
  * @param {object} point - {lat, lon, alt} (alt in meters)

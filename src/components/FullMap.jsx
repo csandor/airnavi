@@ -36,7 +36,7 @@ const lineToLabelGeoJSON = (line) => ({
     }
 });
 
-const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect }) => {
+const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsPath }) => {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const [loaded, setLoaded] = useState(false);
@@ -125,6 +125,22 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect }) => {
                     'circle-stroke-color': '#000',
                     'circle-stroke-width': 1
                 }
+            });
+
+            map.addSource('dubins-path', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'dubins-path-halo-layer',
+                type: 'line',
+                source: 'dubins-path',
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+                paint: { 'line-color': '#000000', 'line-width': 9, 'line-opacity': 0.5 }
+            });
+            map.addLayer({
+                id: 'dubins-path-layer',
+                type: 'line',
+                source: 'dubins-path',
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+                paint: { 'line-color': '#ffaa00', 'line-width': 5, 'line-dasharray': [3, 3] }
             });
 
             setLoaded(true);
@@ -284,6 +300,21 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect }) => {
             { animate: false }
         );
     }, [loaded, currentLine, gpsData, direction, lines]);
+
+    // Draw the planned Dubins path (planning mode overlay)
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!loaded || !map) return;
+        const points = dubinsPath && dubinsPath.points;
+        map.getSource('dubins-path').setData({
+            type: 'FeatureCollection',
+            features: points && points.length > 1 ? [{
+                type: 'Feature',
+                properties: {},
+                geometry: { type: 'LineString', coordinates: points.map(p => [p.lon, p.lat]) }
+            }] : []
+        });
+    }, [loaded, dubinsPath]);
 
     return (
         <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>

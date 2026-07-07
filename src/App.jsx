@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { parseKML } from './utils/KMLParser'
-import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance } from './utils/GeoUtils'
+import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance, destinationPoint } from './utils/GeoUtils'
+import { planDubinsPath } from './utils/DubinsUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { flightLogger } from './utils/FlightLogger'
 import { downloadKMZ } from './utils/KMZExporter'
@@ -53,6 +54,11 @@ function App() {
     const [showMiniMap, setShowMiniMap] = useState(true);
     const [mapMaximized, setMapMaximized] = useState(false);
 
+    // Dubins path planning mode
+    const [planningMode, setPlanningMode] = useState(false);
+    const [dubinsPath, setDubinsPath] = useState(null);
+    const lastDubinsUpdate = useRef(0);
+
     const showToast = (message, type = 'info') => {
         setNotification({ message, type });
     };
@@ -60,6 +66,26 @@ function App() {
     const toggleMiniMap = () => {
         setShowMiniMap(prev => !prev);
     };
+
+    const togglePlanningMode = () => {
+        setPlanningMode(prev => {
+            const next = !prev;
+            if (!next) {
+                setDubinsPath(null);
+                lastDubinsUpdate.current = 0;
+            }
+            return next;
+        });
+    };
+
+    // Planning mode only applies to the big map — clear it if the HUD view is shown
+    useEffect(() => {
+        if (!mapMaximized && planningMode) {
+            setPlanningMode(false);
+            setDubinsPath(null);
+            lastDubinsUpdate.current = 0;
+        }
+    }, [mapMaximized, planningMode]);
 
     useEffect(() => {
         if ('serviceWorker' in navigator) {
@@ -233,6 +259,11 @@ function App() {
 
         setCurrentLine(line);
         resetFlightState();
+
+        // Force an immediate Dubins replan for the newly selected line
+        if (planningMode) {
+            lastDubinsUpdate.current = 0;
+        }
     }
 
     const toggleDirection = () => {
@@ -385,6 +416,46 @@ function App() {
         }
     }, [gpsData, flightStatus, currentLine, direction]);
 
+    // Dubins path recompute (throttled) while in planning mode
+    useEffect(() => {
+        if (!planningMode || !currentLine || gpsData.lat === 0) return;
+        const now = Date.now();
+        if (now - lastDubinsUpdate.current < config.dubins.updateIntervalSeconds * 1000) return;
+        lastDubinsUpdate.current = now;
+
+        const start = direction === 'normal' ? currentLine.start : currentLine.end;
+        const end = direction === 'normal' ? currentLine.end : currentLine.start;
+        const lineBearing = calculateBearing(start.lat, start.lon, end.lat, end.lon);
+        const target = destinationPoint(start.lat, start.lon, (lineBearing + 180) % 360, config.dubins.approachDistance);
+        const path = planDubinsPath(
+            { lat: gpsData.lat, lon: gpsData.lon, heading: gpsData.heading },
+            { lat: target.lat, lon: target.lon, heading: lineBearing },
+            config.dubins.minRadius
+        );
+        if (path) {
+            path.points = [...path.points, { lat: start.lat, lon: start.lon }];
+        }
+        setDubinsPath(path);
+    }, [planningMode, gpsData, currentLine, direction]);
+
+    // Auto-exit planning mode once on-line with green heading
+    useEffect(() => {
+        if (!planningMode || !currentLine || gpsData.lat === 0) return;
+
+        const start = direction === 'normal' ? currentLine.start : currentLine.end;
+        const end = direction === 'normal' ? currentLine.end : currentLine.start;
+        const crossTrackDist = calculateCrossTrackDistance(gpsData, start, end);
+        const lineBearing = calculateBearing(start.lat, start.lon, end.lat, end.lon);
+        let headingDiff = gpsData.heading - lineBearing;
+        while (headingDiff < -180) headingDiff += 360;
+        while (headingDiff > 180) headingDiff -= 360;
+
+        if (Math.abs(crossTrackDist) <= config.limits.green && Math.abs(headingDiff) <= config.limits.heading_green) {
+            setPlanningMode(false);
+            setDubinsPath(null);
+        }
+    }, [planningMode, gpsData, currentLine, direction]);
+
     // Logic Loop via Effect
     useEffect(() => {
         if (!currentLine || gpsData.lat === 0 || flightStatus !== 'flying') return;
@@ -531,6 +602,9 @@ function App() {
                     // Map View Props
                     mapMaximized={mapMaximized}
                     onToggleMapMaximized={() => setMapMaximized(prev => !prev)}
+                    // Planning Mode Props
+                    planningMode={planningMode}
+                    onTogglePlanningMode={togglePlanningMode}
                 />
             </div>
 
@@ -557,6 +631,7 @@ function App() {
                             gpsData={gpsData}
                             direction={direction}
                             onLineSelect={handleLineSelect}
+                            dubinsPath={dubinsPath}
                         />
                         {currentLine && (
                             <DistanceDisplay

@@ -40,6 +40,13 @@ const config = {
         vertical_yellow: 4, // Within this -> Yellow. Above -> Red.
         heading_green: 5,  // Within this heading error (degrees) -> auto-start recording
         start_radius: 10   // Must be within this distance (meters) of start or end point to auto-start recording
+    },
+
+    // Dubins path planning mode (big map guidance to the flight line start)
+    dubins: {
+        minRadius: 300,           // meters, minimum turn radius for the planned path
+        approachDistance: 500,    // meters before the line start where heading must already be aligned
+        updateIntervalSeconds: 5  // minimum seconds between path recomputes
     }
 };
 
