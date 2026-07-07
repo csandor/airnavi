@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { parseKML } from './utils/KMLParser'
 import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance, destinationPoint } from './utils/GeoUtils'
 import { planDubinsPath } from './utils/DubinsUtils'
@@ -9,7 +9,7 @@ import LineSelector from './components/LineSelector'
 import HUD from './components/HUD'
 import VisualNav from './components/VisualNav'
 import MiniMap from './components/MiniMap'
-import FullMap from './components/FullMap'
+const FullMap = lazy(() => import('./components/FullMap'))
 import DistanceDisplay from './components/DistanceDisplay'
 import SummaryDialog from './components/SummaryDialog'
 import Toast from './components/Toast'
@@ -625,14 +625,16 @@ function App() {
 
                 {mapMaximized && (
                     <>
-                        <FullMap
-                            lines={lines}
-                            currentLine={currentLine}
-                            gpsData={gpsData}
-                            direction={direction}
-                            onLineSelect={handleLineSelect}
-                            dubinsPath={dubinsPath}
-                        />
+                        <Suspense fallback={null}>
+                            <FullMap
+                                lines={lines}
+                                currentLine={currentLine}
+                                gpsData={gpsData}
+                                direction={direction}
+                                onLineSelect={handleLineSelect}
+                                dubinsPath={dubinsPath}
+                            />
+                        </Suspense>
                         {currentLine && (
                             <DistanceDisplay
                                 {...renderHudData}

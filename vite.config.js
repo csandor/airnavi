@@ -35,6 +35,11 @@ function kmlManifestPlugin() {
 // https://vite.dev/config/
 export default defineConfig({
     base: './',
+    build: {
+        // FullMap.jsx lazy-loads maplibre-gl, which alone exceeds this limit;
+        // it's deferred until the user opens the map view, not part of the initial load.
+        chunkSizeWarningLimit: 1100,
+    },
     plugins: [
         kmlManifestPlugin(),
         react(),
