@@ -39,54 +39,55 @@ const LineSelector = ({
     const isFlying = flightStatus === 'flying';
 
     return (
-        <div className="glass-panel" style={{
-            padding: 'var(--spacing-md)',
-            display: 'flex',
-            gap: 'var(--spacing-md)',
-            alignItems: 'center',
-            marginBottom: 'var(--spacing-md)',
-            zIndex: 10
-        }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+        <>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-xs)' }}>
                 AirNavi v{version}
             </div>
 
-            <div style={{ flex: 1 }}>
-                <label style={{
-                    display: 'block',
-                    fontSize: '0.8em',
-                    color: 'var(--color-text-secondary)',
-                    marginBottom: 'var(--spacing-xs)'
-                }}>
-                    Select Flight Line
-                </label>
-                <select
-                    value={currentLine ? currentLine.seq : ''}
-                    onChange={(e) => {
-                        const seq = parseInt(e.target.value);
-                        const line = lines.find(l => l.seq === seq);
-                        onLineSelect(line);
-                    }}
-                    style={{
-                        width: '100%',
-                        padding: 'var(--spacing-sm)',
-                        borderRadius: 'var(--radius-sm)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        background: 'rgba(0,0,0,0.3)',
-                        color: 'white',
-                        fontSize: '1em'
-                    }}
-                >
-                    <option value="">-- Select Line --</option>
-                    {lines.map(line => (
-                        <option key={line.seq} value={line.seq}>
-                            Line {line.seq}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <div className="glass-panel" style={{
+                padding: 'var(--spacing-md)',
+                display: 'flex',
+                gap: 'var(--spacing-md)',
+                alignItems: 'center',
+                marginBottom: 'var(--spacing-md)',
+                zIndex: 10
+            }}>
+                <div style={{ flex: 1 }}>
+                    <label style={{
+                        display: 'block',
+                        fontSize: '0.8em',
+                        color: 'var(--color-text-secondary)',
+                        marginBottom: 'var(--spacing-xs)'
+                    }}>
+                        Select Flight Line
+                    </label>
+                    <select
+                        value={currentLine ? currentLine.seq : ''}
+                        onChange={(e) => {
+                            const seq = parseInt(e.target.value);
+                            const line = lines.find(l => l.seq === seq);
+                            onLineSelect(line);
+                        }}
+                        style={{
+                            width: '100%',
+                            padding: 'var(--spacing-sm)',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            background: 'rgba(0,0,0,0.3)',
+                            color: 'white',
+                            fontSize: '1em'
+                        }}
+                    >
+                        <option value="">-- Select Line --</option>
+                        {lines.map(line => (
+                            <option key={line.seq} value={line.seq}>
+                                Line {line.seq}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-            {completedLines.length > 0 && (
+                {completedLines.length > 0 && (
                 <div style={{ flex: 1 }}>
                     <label style={{
                         display: 'block',
@@ -249,7 +250,8 @@ const LineSelector = ({
                     onToggleMiniMap={onToggleMiniMap}
                 />
             </div>
-        </div>
+            </div>
+        </>
     );
 };
 
