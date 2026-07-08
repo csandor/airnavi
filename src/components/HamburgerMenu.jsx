@@ -77,7 +77,9 @@ const HamburgerMenu = ({
                     zIndex: 1000,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px'
+                    gap: '4px',
+                    maxHeight: 'calc(100vh - 80px)',
+                    overflowY: 'auto'
                 }}>
                     <MenuButton
                         onClick={() => handleAction(onToggleSimulation)}
