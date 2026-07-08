@@ -36,7 +36,7 @@ const lineToLabelGeoJSON = (line) => ({
     }
 });
 
-const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsPath }) => {
+const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsPath, autoZoom = true, onToggleAutoZoom }) => {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const [loaded, setLoaded] = useState(false);
@@ -226,7 +226,7 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
             map.getSource('path').setData({ type: 'FeatureCollection', features: [] });
             map.getSource('aircraft').setData({ type: 'FeatureCollection', features: [] });
 
-            if (lines && lines.length > 0) {
+            if (autoZoom && lines && lines.length > 0) {
                 let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
                 lines.forEach(l => {
                     [l.start, l.end].forEach(p => {
@@ -290,6 +290,8 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
             maxLon = Math.max(maxLon, gpsData.lon);
         }
 
+        if (!autoZoom) return;
+
         const latRange = maxLat - minLat || 0.01;
         const lonRange = maxLon - minLon || 0.01;
         const paddingLat = latRange * 0.2;
@@ -299,7 +301,7 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
             [[minLon - paddingLon, minLat - paddingLat], [maxLon + paddingLon, maxLat + paddingLat]],
             { animate: false }
         );
-    }, [loaded, currentLine, gpsData, direction, lines]);
+    }, [loaded, currentLine, gpsData, direction, lines, autoZoom]);
 
     // Draw the planned Dubins path (planning mode overlay)
     useEffect(() => {
@@ -319,6 +321,33 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
     return (
         <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
             <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+            <label
+                style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '12px',
+                    zIndex: 30,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 10px',
+                    background: 'rgba(26, 42, 58, 0.85)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                }}
+            >
+                <input
+                    type="checkbox"
+                    checked={autoZoom}
+                    onChange={onToggleAutoZoom}
+                    style={{ margin: 0 }}
+                />
+                Auto Zoom
+            </label>
         </div>
     );
 };

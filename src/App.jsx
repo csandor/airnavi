@@ -53,6 +53,7 @@ function App() {
     const dragStart = useRef({ x: 0, y: 0 });
     const [showMiniMap, setShowMiniMap] = useState(true);
     const [mapMaximized, setMapMaximized] = useState(false);
+    const [autoZoom, setAutoZoom] = useState(true);
 
     // Dubins path planning mode
     const [planningMode, setPlanningMode] = useState(false);
@@ -65,6 +66,10 @@ function App() {
 
     const toggleMiniMap = () => {
         setShowMiniMap(prev => !prev);
+    };
+
+    const toggleAutoZoom = () => {
+        setAutoZoom(prev => !prev);
     };
 
     const togglePlanningMode = () => {
@@ -86,6 +91,15 @@ function App() {
             lastDubinsUpdate.current = 0;
         }
     }, [mapMaximized, planningMode]);
+
+    // Planning mode is unavailable while recording — stop it as soon as flight starts
+    useEffect(() => {
+        if (flightStatus === 'flying' && planningMode) {
+            setPlanningMode(false);
+            setDubinsPath(null);
+            lastDubinsUpdate.current = 0;
+        }
+    }, [flightStatus, planningMode]);
 
     useEffect(() => {
         if ('serviceWorker' in navigator) {
@@ -633,6 +647,8 @@ function App() {
                                 direction={direction}
                                 onLineSelect={handleLineSelect}
                                 dubinsPath={dubinsPath}
+                                autoZoom={autoZoom}
+                                onToggleAutoZoom={toggleAutoZoom}
                             />
                         </Suspense>
                         {currentLine && (

@@ -213,7 +213,7 @@ const LineSelector = ({
                     <button
                         className="btn-primary"
                         onClick={onTogglePlanningMode}
-                        disabled={!mapMaximized}
+                        disabled={!mapMaximized || isFlying}
                         style={{
                             padding: '8px',
                             display: 'flex',
@@ -222,10 +222,10 @@ const LineSelector = ({
                             background: planningMode ? 'var(--color-danger)' : 'rgba(255, 255, 255, 0.1)',
                             border: planningMode ? 'none' : '1px solid rgba(255,255,255,0.2)',
                             color: 'white',
-                            opacity: mapMaximized ? 1 : 0.5,
-                            cursor: mapMaximized ? 'pointer' : 'not-allowed'
+                            opacity: (mapMaximized && !isFlying) ? 1 : 0.5,
+                            cursor: (mapMaximized && !isFlying) ? 'pointer' : 'not-allowed'
                         }}
-                        title={!mapMaximized ? "Switch to map view to plan a route" : (planningMode ? "Stop Planning" : "Plan Route to Line")}
+                        title={isFlying ? "Stop recording to plan a route" : (!mapMaximized ? "Switch to map view to plan a route" : (planningMode ? "Stop Planning" : "Plan Route to Line"))}
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-3m-6 3V6.5m6 10.5l5.5 2.5V6l-5.5-2.5m0 13.5V3.5" />
