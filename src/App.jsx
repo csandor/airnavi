@@ -210,7 +210,7 @@ function App() {
         fetch(`${config.bundledKmlDir}${filename}`)
             .then(res => res.text())
             .then(content => {
-                const parsedLines = applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
+                const parsedLines = parseFlightFile(filename, content);
                 setLines(parsedLines);
                 localStorage.setItem('customKml', content);
                 localStorage.setItem('customFileName', filename);

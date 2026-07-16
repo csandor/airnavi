@@ -125,7 +125,7 @@ const HamburgerMenu = ({
                         <div style={{ position: 'relative' }}>
                             <MenuButton
                                 onClick={() => setShowKmlSubmenu(prev => !prev)}
-                                label={`🗂 Sample KMLs ${showKmlSubmenu ? '▾' : '▸'}`}
+                                label={`🗂 Sample Missions ${showKmlSubmenu ? '▾' : '▸'}`}
                             />
                             {showKmlSubmenu && (
                                 <div style={{
