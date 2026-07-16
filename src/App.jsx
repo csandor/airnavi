@@ -13,6 +13,7 @@ import MiniMap from './components/MiniMap'
 const FullMap = lazy(() => import('./components/FullMap'))
 import DistanceDisplay from './components/DistanceDisplay'
 import SummaryDialog from './components/SummaryDialog'
+import SettingsDialog from './components/SettingsDialog'
 import Toast from './components/Toast'
 import config from './config'
 import './App.css'
@@ -37,6 +38,22 @@ const parseFlightFile = (filename, content) => {
     return applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
 };
 
+const loadRuntimeSettings = () => {
+    const defaults = { crosshair: config.crosshair, limits: config.limits, dubins: config.dubins };
+    const saved = localStorage.getItem('runtimeSettings');
+    if (!saved) return defaults;
+    try {
+        const parsed = JSON.parse(saved);
+        return {
+            crosshair: { ...defaults.crosshair, ...parsed.crosshair },
+            limits: { ...defaults.limits, ...parsed.limits },
+            dubins: { ...defaults.dubins, ...parsed.dubins },
+        };
+    } catch {
+        return defaults;
+    }
+};
+
 function App() {
     const [completedLines, setCompletedLines] = useState(new Set())
     const [lines, setLines] = useState([])
@@ -49,6 +66,8 @@ function App() {
     const [notification, setNotification] = useState(null) // { message, type }
     const [units, setUnits] = useState('metric'); // 'metric' or 'imperial'
     const [showSummary, setShowSummary] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [runtimeSettings, setRuntimeSettings] = useState(loadRuntimeSettings);
     const [lastSession, setLastSession] = useState(null);
     const [bundledKmlFiles, setBundledKmlFiles] = useState([]);
     const completionLock = useRef(false); // Lock to prevent double logging
@@ -93,6 +112,16 @@ function App() {
             }
             return next;
         });
+    };
+
+    const updateRuntimeSettings = (next) => {
+        setRuntimeSettings(next);
+        localStorage.setItem('runtimeSettings', JSON.stringify(next));
+    };
+
+    const resetRuntimeSettings = () => {
+        localStorage.removeItem('runtimeSettings');
+        setRuntimeSettings({ crosshair: config.crosshair, limits: config.limits, dubins: config.dubins });
     };
 
     // Planning mode only applies to the big map — clear it if the HUD view is shown
@@ -454,40 +483,40 @@ function App() {
 
         const distToStart = calculateDistance(gpsData.lat, gpsData.lon, start.lat, start.lon) * 1000;
         const distToEnd = calculateDistance(gpsData.lat, gpsData.lon, end.lat, end.lon) * 1000;
-        const nearEndpoint = distToStart <= config.limits.start_radius || distToEnd <= config.limits.start_radius;
+        const nearEndpoint = distToStart <= runtimeSettings.limits.start_radius || distToEnd <= runtimeSettings.limits.start_radius;
 
         if (nearEndpoint &&
-            Math.abs(crossTrackDist) <= config.limits.green &&
-            Math.abs(altDiff) <= config.limits.vertical_green &&
-            Math.abs(headingDiff) <= config.limits.heading_green) {
+            Math.abs(crossTrackDist) <= runtimeSettings.limits.green &&
+            Math.abs(altDiff) <= runtimeSettings.limits.vertical_green &&
+            Math.abs(headingDiff) <= runtimeSettings.limits.heading_green) {
             resetFlightState();
             setFlightStatus('flying');
             flightLogger.startFlight();
             showToast("Recording Started", "success");
         }
-    }, [gpsData, flightStatus, currentLine, direction]);
+    }, [gpsData, flightStatus, currentLine, direction, runtimeSettings.limits]);
 
     // Dubins path recompute (throttled) while in planning mode
     useEffect(() => {
         if (!planningMode || !currentLine || gpsData.lat === 0) return;
         const now = Date.now();
-        if (now - lastDubinsUpdate.current < config.dubins.updateIntervalSeconds * 1000) return;
+        if (now - lastDubinsUpdate.current < runtimeSettings.dubins.updateIntervalSeconds * 1000) return;
         lastDubinsUpdate.current = now;
 
         const start = direction === 'normal' ? currentLine.start : currentLine.end;
         const end = direction === 'normal' ? currentLine.end : currentLine.start;
         const lineBearing = calculateBearing(start.lat, start.lon, end.lat, end.lon);
-        const target = destinationPoint(start.lat, start.lon, (lineBearing + 180) % 360, config.dubins.approachDistance);
+        const target = destinationPoint(start.lat, start.lon, (lineBearing + 180) % 360, runtimeSettings.dubins.approachDistance);
         const path = planDubinsPath(
             { lat: gpsData.lat, lon: gpsData.lon, heading: gpsData.heading },
             { lat: target.lat, lon: target.lon, heading: lineBearing },
-            config.dubins.minRadius
+            runtimeSettings.dubins.minRadius
         );
         if (path) {
             path.points = [...path.points, { lat: start.lat, lon: start.lon }];
         }
         setDubinsPath(path);
-    }, [planningMode, gpsData, currentLine, direction]);
+    }, [planningMode, gpsData, currentLine, direction, runtimeSettings.dubins]);
 
     // Auto-exit planning mode once on-line with green heading
     useEffect(() => {
@@ -501,11 +530,11 @@ function App() {
         while (headingDiff < -180) headingDiff += 360;
         while (headingDiff > 180) headingDiff -= 360;
 
-        if (Math.abs(crossTrackDist) <= config.limits.green && Math.abs(headingDiff) <= config.limits.heading_green) {
+        if (Math.abs(crossTrackDist) <= runtimeSettings.limits.green && Math.abs(headingDiff) <= runtimeSettings.limits.heading_green) {
             setPlanningMode(false);
             setDubinsPath(null);
         }
-    }, [planningMode, gpsData, currentLine, direction]);
+    }, [planningMode, gpsData, currentLine, direction, runtimeSettings.limits]);
 
     // Logic Loop via Effect
     useEffect(() => {
@@ -545,7 +574,7 @@ function App() {
 
         // Update Coverage
         const currentAlongTrack = alongTrack;
-        if (Math.abs(crossTrackDist) <= config.limits.green) {
+        if (Math.abs(crossTrackDist) <= runtimeSettings.limits.green) {
             if (prevAlongTrack.current !== null) {
                 const startRange = Math.min(prevAlongTrack.current, currentAlongTrack);
                 const endRange = Math.max(prevAlongTrack.current, currentAlongTrack);
@@ -572,7 +601,7 @@ function App() {
         }
 
         prevAlongTrack.current = alongTrack;
-    }, [gpsData, flightStatus, currentLine, direction]);
+    }, [gpsData, flightStatus, currentLine, direction, runtimeSettings.limits]);
 
     // Calculate HUD Data for Render (Visual only)
     let renderHudData = {
@@ -649,6 +678,7 @@ function App() {
                     onDownloadKMZ={() => downloadKMZ(flightLogger.history)}
                     onKmlImport={handleKmlImport}
                     onReset={clearCustomKml}
+                    onOpenSettings={() => setShowSettings(true)}
                     hasCustomKml={!!localStorage.getItem('customKml')}
                     bundledKmlFiles={bundledKmlFiles}
                     onBundledKmlSelect={handleBundledKmlSelect}
@@ -669,6 +699,15 @@ function App() {
                     session={lastSession}
                     onKeep={handleKeep}
                     onReject={handleReject}
+                />
+            )}
+
+            {showSettings && (
+                <SettingsDialog
+                    settings={runtimeSettings}
+                    onSave={updateRuntimeSettings}
+                    onReset={resetRuntimeSettings}
+                    onClose={() => setShowSettings(false)}
                 />
             )}
 
@@ -697,6 +736,7 @@ function App() {
                             <DistanceDisplay
                                 {...renderHudData}
                                 units={units}
+                                limits={runtimeSettings.limits}
                                 style={{ zIndex: 30 }}
                             />
                         )}
@@ -710,7 +750,8 @@ function App() {
                             altDiff={renderHudData.altDiff}
                             heading={gpsData.heading}
                             targetHeading={renderHudData.targetHeading}
-                            limits={config.limits}
+                            limits={runtimeSettings.limits}
+                            crosshair={runtimeSettings.crosshair}
                             onLayout={({ hudCenterX, canvasWidth, compassRadius }) => {
                                 setHudHorizontalOffset(hudCenterX - canvasWidth / 2);
                                 setHudRadius(compassRadius);
@@ -720,6 +761,7 @@ function App() {
                             <HUD
                                 {...renderHudData}
                                 units={units}
+                                limits={runtimeSettings.limits}
                                 horizontalOffset={hudHorizontalOffset}
                                 radius={hudRadius}
                             />

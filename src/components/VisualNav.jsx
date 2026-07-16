@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import config from '../config';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, attitude, onLayout }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, attitude, onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -92,8 +91,8 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
             if (onLayout) onLayout({ hudCenterX, canvasWidth: width, compassRadius });
 
             const maxPx = compassRadius * 2;
-            const offsetX = -logDisplace(crossTrackDist, config.crosshairMaxCrossTrack, maxPx);
-            const offsetY =  logDisplace(altDiff,        config.crosshairMaxAltDiff,    maxPx);
+            const offsetX = -logDisplace(crossTrackDist, crosshair.maxCrossTrack, maxPx);
+            const offsetY =  logDisplace(altDiff,        crosshair.maxAltDiff,    maxPx);
 
             const cx = hudCenterX + offsetX;
             const cy = height / 2 + offsetY;
@@ -299,7 +298,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, at
         return () => {
             window.removeEventListener('resize', render);
         }
-    }, [crossTrackDist, altDiff, heading, targetHeading, limits]);
+    }, [crossTrackDist, altDiff, heading, targetHeading, limits, crosshair]);
 
     return (
         <canvas

@@ -1,5 +1,4 @@
 import React from 'react';
-import config from '../config';
 
 const DistanceDisplay = ({
     distanceToStart,
@@ -9,9 +8,10 @@ const DistanceDisplay = ({
     altDiff,
     speed,
     units = 'metric',
+    limits,
     style
 }) => {
-    const greenLimit = config.limits.green;
+    const greenLimit = limits.green;
 
     return (
         <div style={{

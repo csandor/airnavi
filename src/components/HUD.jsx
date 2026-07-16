@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import config from '../config';
 import { calculateBearing } from '../utils/GeoUtils';
 import DistanceDisplay from './DistanceDisplay';
 
@@ -16,15 +15,16 @@ const HUD = ({
     headingDiff,
     className,
     units = 'metric',
+    limits,
     horizontalOffset = 0,
     radius = 60
 }) => {
 
-    // Thresholds from config
-    const greenLimit = config.limits.green;
-    const yellowLimit = config.limits.yellow;
-    const vGreenLimit = config.limits.vertical_green;
-    const vYellowLimit = config.limits.vertical_yellow;
+    // Thresholds from runtime settings
+    const greenLimit = limits.green;
+    const yellowLimit = limits.yellow;
+    const vGreenLimit = limits.vertical_green;
+    const vYellowLimit = limits.vertical_yellow;
 
     // Determine Halo Color (Worst case wins)
     const xt = Math.abs(crossTrackDist);
@@ -105,6 +105,7 @@ const HUD = ({
                 altDiff={altDiff}
                 speed={speed}
                 units={units}
+                limits={limits}
             />
         </div>
     );

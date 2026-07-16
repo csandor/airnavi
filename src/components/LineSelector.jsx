@@ -26,6 +26,7 @@ const LineSelector = ({
     onDownloadKMZ,
     onKmlImport,
     onReset,
+    onOpenSettings,
     hasCustomKml,
     bundledKmlFiles,
     onBundledKmlSelect,
@@ -279,6 +280,7 @@ const LineSelector = ({
                     onDownloadKMZ={onDownloadKMZ}
                     onKmlImport={onKmlImport}
                     onReset={onReset}
+                    onOpenSettings={onOpenSettings}
                     hasCustomKml={hasCustomKml}
                     bundledKmlFiles={bundledKmlFiles}
                     onBundledKmlSelect={onBundledKmlSelect}

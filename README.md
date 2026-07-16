@@ -1,6 +1,6 @@
 # AirNavi
 
-Offline-capable PWA for aerial survey navigation. The pilot selects a flight line from a KML file; the app tracks cross-track error, vertical deviation, and heading deviation in real time and auto-records when the aircraft is on-line.
+Offline-capable PWA for aerial survey navigation. The pilot selects a flight line from a KML or fixed-width TXT file; the app tracks cross-track error, vertical deviation, and heading deviation in real time and auto-records when the aircraft is on-line.
 
 ---
 
@@ -11,8 +11,10 @@ Offline-capable PWA for aerial survey navigation. The pilot selects a flight lin
 4. [Installation on iOS](#installation-on-ios)
 5. [Usage](#usage)
 6. [KML File Format](#kml-file-format)
-7. [Configuration](#configuration)
-8. [CSV Export](#csv-export)
+7. [TXT File Format](#txt-file-format)
+8. [Configuration](#configuration)
+9. [Runtime Settings](#runtime-settings)
+10. [CSV Export](#csv-export)
 
 ---
 
@@ -104,14 +106,17 @@ AirNavi is a PWA — no app store required.
 
 ## Usage
 
-### Loading a KML file
+### Loading a flight file
 - On startup the app loads the bundled `lines.kml` from `public/kml/`.
-- To use your own file: open the **hamburger menu** (top right) → **Load KML** → pick a `.kml` file from your device. The file is stored in the browser's `localStorage` and reloaded automatically on the next launch.
+- To use your own file: open the **hamburger menu** (top right) → **Load Flight File** → pick a `.kml` or `.txt` file from your device. The file's content is stored in the browser's `localStorage` and reloaded automatically on the next launch.
 - **Sample KMLs** — bundled files in `public/kml/` are listed in the menu under **Sample KMLs**.
 - To go back to the default: menu → **Reset KML**.
 
+### Sections
+Fixed-width TXT files (see [TXT File Format](#txt-file-format)) can group flight lines into **sections**. When a loaded file contains more than one section, a **Select Section** dropdown appears to the left of the Line Selector. Picking a section filters the Line Selector, the completed-lines list, and the full-screen map to that section only; KML files always contain a single implicit section, so the selector stays hidden.
+
 ### Selecting a flight line
-Use the **Line Selector** dropdown to pick the line you want to fly. Lines are numbered by their sequence field in the KML and sorted ascending.
+Use the **Line Selector** dropdown to pick the line you want to fly. Lines are numbered by their sequence field (from the KML `SimpleData` field, or the row number column in a TXT file) and sorted ascending within the current section.
 
 ### HUD indicators
 | Indicator | Meaning |
@@ -123,7 +128,7 @@ Use the **Line Selector** dropdown to pick the line you want to fly. Lines are n
 
 ### Auto-recording
 Recording starts automatically when **all** of the following are true simultaneously:
-- Within `start_radius` meters of the line's start or end point (default 50 m)
+- Within `start_radius` meters of the line's start or end point (default 10 m)
 - Cross-track error ≤ green limit (default 2 m)
 - Vertical error ≤ vertical green limit (default 2 m)
 - Heading error ≤ heading green limit (default 5°)
@@ -141,17 +146,24 @@ Menu → **Simulate Flight** runs a virtual GPS along the currently selected lin
 ### Units
 Menu → **Units** toggles between metric (m, km/h) and imperial (ft, knots).
 
+### Settings
+Menu → **⚙ Settings** opens a dialog to edit the crosshair, halo-limit, and Dubins path-planning values live (see [Runtime Settings](#runtime-settings)) without rebuilding the app. Changes take effect immediately and persist across reloads; a **Reset to Defaults** button restores the values from `src/config.js`.
+
 ### Mini-map
 A draggable map overlay shows the flight lines and current position. Toggle it from the menu.
 
 ### Full-screen map
 Tap the map icon next to the record button (it becomes a compass icon while the map is shown) to switch the instrument area to a full-screen OpenStreetMap view rendered with MapLibre GL. The top menu bar and the distance readouts stay visible.
 
-- Every flight line from the loaded KML is drawn and labeled with its sequence number.
+- Every flight line in the current section is drawn and labeled with its sequence number.
 - The selected line is highlighted (magenta with a dark halo) with green/red start/end markers; other lines are shown in cyan.
 - Tap any line (or its label) on the map to select it — same effect as picking it from the Line Selector dropdown.
-- The current aircraft position and flown track are shown, and the view auto-fits to the selected line (or to all lines, if none is selected) using the same bounds + padding logic as the mini-map.
+- The current aircraft position and flown track are shown.
+- An **Auto Zoom** checkbox (top-left of the map) controls whether the view auto-fits: to the selected line, start/end + aircraft position (padded 20%) when a line is picked, or to all lines in the current section when none is picked. Uncheck it to pan/zoom freely without the view snapping back.
 - Tap the compass icon to switch back to the HUD view.
+
+### Dubins path planning
+When a line is selected and the full-screen map is shown (and you're not currently recording), a **plan-route** button appears next to the record button. Activating it draws a dashed guidance path from the aircraft's current position to a point before the line's start, aligned with the line's heading, using a Dubins path (`dubins.minRadius` turn radius, recomputed every `dubins.updateIntervalSeconds`). Planning mode exits automatically once you're on-line with the correct heading, or when you switch back to the HUD view or start recording.
 
 ### Exporting results
 - **Export CSV** — downloads a `.csv` file with one row per completed line (see [CSV Export](#csv-export)).
@@ -191,23 +203,69 @@ Minimal valid example:
 
 ---
 
+## TXT File Format
+
+An alternative, fixed-width flight-line format (e.g. survey mission exports). Rules:
+
+- Lines starting with `#` are treated as header/comment metadata and ignored.
+- Every other non-empty line is a data row with **at least 5** whitespace-separated columns:
+
+  ```
+  lon  lat  alt  row_Nr  section_Nr
+  ```
+
+- `row_Nr` (4th column) doubles as the line's **sequence number**. Two data rows sharing the same `(section_Nr, row_Nr)` pair form one flight line — the first occurrence becomes the **start** point, the second becomes the **end** point. Any pair that doesn't appear exactly twice is an error.
+- `section_Nr` (5th column) groups lines into **sections** — see [Sections](#sections). A file with only one distinct `section_Nr` value behaves like KML (no section selector shown).
+- Altitudes are interpreted as **ellipsoidal (WGS-84)**, not MSL — unlike KML, no geoid undulation correction is applied, since this already matches the GPS altitude datum.
+
+Minimal valid example (one section, one line):
+```
+#GE_1 //section name
+ 19.252014001  47.648499826  548.00 0 1
+ 19.261554279  47.643069232  548.00 0 1
+```
+
+---
+
 ## Configuration
 
-All tuneable parameters are in `src/config.js`. Edit this file before touching any logic.
+All tuneable parameters are in `src/config.js`. Edit this file before touching any logic. The `crosshair`, `limits`, and `dubins` sections can additionally be overridden at runtime — see [Runtime Settings](#runtime-settings).
 
 | Key | Default | Description |
 |-----|---------|-------------|
 | `completionThreshold` | `98` | % of line length required to count as a successful pass |
 | `kmlFilePath` | `./lines.kml` | Default KML loaded from `public/` |
-| `geoidUndulation` | `43.1` | Geoid height above ellipsoid for the survey area (metres). KML MSL altitudes are converted to ellipsoidal by adding this value before comparing with GPS altitude. Hungary ≈ 43–46 m. |
+| `bundledKmlDir` | `./kml/` | Folder of bundled sample KML files listed under **Sample KMLs**; must contain a `manifest.json` (auto-generated by the Vite kml-manifest plugin) |
+| `geoidUndulation` | `43.1` | Geoid height above ellipsoid for the survey area (metres). KML MSL altitudes are converted to ellipsoidal by adding this value before comparing with GPS altitude. Hungary ≈ 43–46 m. Not applied to TXT files (already ellipsoidal). |
+| `summaryAutoCloseSeconds` | `10` | Seconds before the Flight Summary dialog auto-dismisses |
+| `notificationDurationSeconds` | `3` | Seconds a toast notification stays visible |
+| `summaryDialogTimeoutMs` | `10000` | Same as `summaryAutoCloseSeconds`, in milliseconds |
+| `simulation.speedKnots` | `10` | Emulator airspeed |
+| `simulation.preStartDistanceFactor` | `0.1` | Fraction of the line length the simulator starts before the actual line start |
+| `simulation.jitter.*` | — | Random noise added to simulated GPS position, altitude, and heading |
+| `crosshair.maxCrossTrack` | `500` | Cross-track distance (m) at which the HUD crosshair reaches maximum screen offset |
+| `crosshair.maxAltDiff` | `200` | Vertical distance (m) at which the HUD crosshair reaches maximum screen offset |
 | `limits.green` | `2` | Cross-track green threshold (m) |
 | `limits.yellow` | `4` | Cross-track yellow threshold (m) |
 | `limits.vertical_green` | `2` | Vertical green threshold (m) |
 | `limits.vertical_yellow` | `4` | Vertical yellow threshold (m) |
 | `limits.heading_green` | `5` | Heading threshold (degrees) for auto-start |
-| `limits.start_radius` | `50` | Max distance from line endpoint (m) to allow auto-start |
-| `simulation.speedKnots` | `10` | Emulator airspeed |
-| `simulation.jitter.*` | — | Random noise added to simulated GPS position, altitude, and heading |
+| `limits.start_radius` | `10` | Max distance from line endpoint (m) to allow auto-start |
+| `dubins.minRadius` | `300` | Minimum turn radius (m) for the planned Dubins path |
+| `dubins.approachDistance` | `500` | Distance (m) before the line start where heading must already be aligned |
+| `dubins.updateIntervalSeconds` | `5` | Minimum seconds between Dubins path recomputes |
+
+---
+
+## Runtime Settings
+
+The **Crosshair**, **Halo Limits**, and **Dubins Path Planning** groups from the table above can be edited without a rebuild via menu → **⚙ Settings**. This opens a dialog with one numeric field per key, grouped the same way.
+
+- **Save** applies the values immediately and stores them in the browser's `localStorage` (key `runtimeSettings`), so they persist across reloads.
+- **Reset to Defaults** clears the stored overrides and reverts to the values in `src/config.js`.
+- **Cancel** discards unsaved edits.
+
+All other `config.js` keys (KML source, geoid undulation, simulation, timing, etc.) remain build-time only.
 
 ---
 

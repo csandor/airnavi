@@ -13,7 +13,8 @@ const HamburgerMenu = ({
     bundledKmlFiles = [],
     onBundledKmlSelect,
     showMiniMap,
-    onToggleMiniMap
+    onToggleMiniMap,
+    onOpenSettings
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showKmlSubmenu, setShowKmlSubmenu] = useState(false);
@@ -89,6 +90,10 @@ const HamburgerMenu = ({
                     <MenuButton
                         onClick={() => handleAction(onToggleUnits)}
                         label={`📏 Units: ${units === 'metric' ? 'MET' : 'IMP'}`}
+                    />
+                    <MenuButton
+                        onClick={() => handleAction(onOpenSettings)}
+                        label="⚙ Settings"
                     />
                     <MenuButton
                         onClick={() => handleAction(onDownloadCSV)}

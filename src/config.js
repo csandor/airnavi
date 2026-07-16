@@ -29,8 +29,10 @@ const config = {
     },
 
     // Crosshair displacement limits (meters at which crosshair reaches max screen offset)
-    crosshairMaxCrossTrack: 500, // horizontal: +/- this many meters -> +/- 2*compassRadius px
-    crosshairMaxAltDiff: 200,    // vertical:   +/- this many meters -> +/- 2*compassRadius px
+    crosshair: {
+        maxCrossTrack: 500, // horizontal: +/- this many meters -> +/- 2*compassRadius px
+        maxAltDiff: 200,    // vertical:   +/- this many meters -> +/- 2*compassRadius px
+    },
 
     // Limits for Halo Colors (meters)
     limits: {
