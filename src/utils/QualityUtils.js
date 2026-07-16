@@ -14,6 +14,13 @@ export const classifyQuality = (crossTrackDist, altDiff, limits) => {
     return 'red';
 };
 
+// Solid quality colors shared by both map views' flown-track rendering.
+export const QUALITY_COLORS = {
+    green: '#00ff00',
+    yellow: '#ffcc00',
+    red: '#ff0000'
+};
+
 const QUALITY_RANK = { green: 0, yellow: 1, red: 2 };
 
 /**

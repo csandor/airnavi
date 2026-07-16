@@ -1,7 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { calculateDistance, calculateBearing } from '../utils/GeoUtils';
+import { calculateDistance, calculateBearing, calculateAlongTrackDistance } from '../utils/GeoUtils';
+import { QUALITY_COLORS } from '../utils/QualityUtils';
 
-const MiniMap = ({ currentLine, gpsData, direction, className, onClose }) => {
+const DEFAULT_PATH_COLOR = 'rgba(255, 200, 0, 0.6)';
+
+const MiniMap = ({ currentLine, gpsData, direction, className, onClose, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
     const canvasRef = useRef(null);
     const [path, setPath] = useState([]);
 
@@ -100,16 +103,29 @@ const MiniMap = ({ currentLine, gpsData, direction, className, onClose }) => {
             ctx.arc(toX(end.lon), toY(end.lat), 4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw Path History
+            // Draw Path History — colored by tracking quality while recording, same as the full-screen map.
             if (path.length > 1) {
-                ctx.strokeStyle = 'rgba(255, 200, 0, 0.6)';
                 ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(toX(path[0].lon), toY(path[0].lat));
-                for (let i = 1; i < path.length; i++) {
-                    ctx.lineTo(toX(path[i].lon), toY(path[i].lat));
+                if (flightStatus === 'flying' && chunkQuality) {
+                    for (let i = 1; i < path.length; i++) {
+                        const alongTrack = calculateAlongTrackDistance(path[i], start, end);
+                        const chunk = Math.floor(alongTrack / qualitySegmentLength);
+                        const quality = chunkQuality[chunk];
+                        ctx.strokeStyle = quality ? QUALITY_COLORS[quality] : DEFAULT_PATH_COLOR;
+                        ctx.beginPath();
+                        ctx.moveTo(toX(path[i - 1].lon), toY(path[i - 1].lat));
+                        ctx.lineTo(toX(path[i].lon), toY(path[i].lat));
+                        ctx.stroke();
+                    }
+                } else {
+                    ctx.strokeStyle = DEFAULT_PATH_COLOR;
+                    ctx.beginPath();
+                    ctx.moveTo(toX(path[0].lon), toY(path[0].lat));
+                    for (let i = 1; i < path.length; i++) {
+                        ctx.lineTo(toX(path[i].lon), toY(path[i].lat));
+                    }
+                    ctx.stroke();
                 }
-                ctx.stroke();
             }
 
             // Draw Aircraft
@@ -146,7 +162,7 @@ const MiniMap = ({ currentLine, gpsData, direction, className, onClose }) => {
         render();
         window.addEventListener('resize', render);
         return () => window.removeEventListener('resize', render);
-    }, [currentLine, gpsData, path, direction]);
+    }, [currentLine, gpsData, path, direction, flightStatus, chunkQuality, qualitySegmentLength]);
 
     return (
         <div className={`glass-panel ${className || ''}`} style={{ overflow: 'hidden', position: 'relative' }}>

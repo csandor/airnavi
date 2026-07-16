@@ -817,6 +817,9 @@ function App() {
                                     gpsData={gpsData}
                                     direction={direction}
                                     onClose={toggleMiniMap}
+                                    flightStatus={flightStatus}
+                                    chunkQuality={Object.fromEntries(chunkQuality.current)}
+                                    qualitySegmentLength={config.qualitySegmentLength}
                                 />
                             </div>
                         )}

@@ -2,12 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { calculateAlongTrackDistance } from '../utils/GeoUtils';
+import { QUALITY_COLORS } from '../utils/QualityUtils';
 
-const QUALITY_COLORS = {
-    green: '#00ff00',
-    yellow: '#ffcc00',
-    red: '#ff0000'
-};
 const DEFAULT_PATH_COLOR = 'rgba(255, 200, 0, 0.6)';
 
 const OSM_STYLE = {
