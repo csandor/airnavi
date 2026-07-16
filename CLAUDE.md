@@ -93,6 +93,9 @@ Imported KML files are stored as raw text in `localStorage` key `customKml`. Cle
 `flightLogger.downloadCSV()` exports one row per completed line:
 Line ID, Date, Start Time, End Time, Duration (s), Direction, Completion (%), Max X-Track (m), Max Alt Diff (m), Max Speed (km/h), Max Hdg Diff (deg)
 
+## Development Workflow
+Do not perform browser-based testing of this app (no launching a browser, driving the UI, or taking screenshots). Verify changes via build (`npm run build`), unit-level checks (e.g. running parser/util functions directly with Node), and code review instead.
+
 ## Test KML Files
 Located in `test-kml/` (excluded from build). Notable files:
 - `Sóskút_teszt_repvonalak.kml` — uses `ID1` as seq field (first SimpleData), 250 m MSL altitude

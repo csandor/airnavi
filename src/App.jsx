@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { parseKML } from './utils/KMLParser'
+import { parseTXT } from './utils/TxtParser'
 import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance, destinationPoint } from './utils/GeoUtils'
 import { planDubinsPath } from './utils/DubinsUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
@@ -26,10 +27,21 @@ const applyGeoidUndulation = (lines) => {
     }));
 };
 
+// KML altitudes are MSL and need geoid undulation to become ellipsoidal;
+// TXT altitudes are already ellipsoidal. KML lines have no section concept,
+// so they're all tagged into a single implicit section.
+const parseFlightFile = (filename, content) => {
+    if (/\.txt$/i.test(filename)) {
+        return parseTXT(content);
+    }
+    return applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
+};
+
 function App() {
     const [completedLines, setCompletedLines] = useState(new Set())
     const [lines, setLines] = useState([])
     const [currentLine, setCurrentLine] = useState(null)
+    const [currentSection, setCurrentSection] = useState(null)
     const [direction, setDirection] = useState('normal')
     const [gpsData, setGpsData] = useState({ lat: 0, lon: 0, alt: 0, speed: 0, heading: 0 })
     const [flightStatus, setFlightStatus] = useState('idle')
@@ -113,15 +125,17 @@ function App() {
         // Try local storage first
         const savedKml = localStorage.getItem('customKml');
         if (savedKml) {
+            const savedFileName = localStorage.getItem('customFileName') || 'custom.kml';
             try {
-                const parsedLines = parseKML(savedKml);
+                const parsedLines = parseFlightFile(savedFileName, savedKml);
                 setLines(parsedLines);
-                showToast("Loaded Custom KML", "success");
+                showToast("Loaded Custom Flight File", "success");
                 return;
             } catch (e) {
-                console.error("Failed to parse saved KML", e);
-                showToast(`Error in Saved KML: ${e.message}`, "error");
+                console.error("Failed to parse saved flight file", e);
+                showToast(`Error in Saved File: ${e.message}`, "error");
                 localStorage.removeItem('customKml');
+                localStorage.removeItem('customFileName');
             }
         }
 
@@ -129,7 +143,7 @@ function App() {
         fetch(config.kmlFilePath)
             .then(res => res.text())
             .then(text => {
-                const parsedLines = applyGeoidUndulation(parseKML(text))
+                const parsedLines = applyGeoidUndulation(parseKML(text)).map(l => ({ ...l, section: 1 }))
                 setLines(parsedLines)
             })
             .catch(err => console.error("Failed to load KML", err))
@@ -142,15 +156,35 @@ function App() {
             .catch(err => console.error("Failed to load bundled KML list", err))
     }, [])
 
+    // Sections available in the loaded flight file, sorted ascending.
+    const sections = [...new Set(lines.map(l => l.section))].sort((a, b) => a - b);
+
+    // Default to the first section whenever the loaded lines no longer match the current selection.
+    useEffect(() => {
+        if (sections.length > 0 && !sections.includes(currentSection)) {
+            setCurrentSection(sections[0]);
+        } else if (sections.length === 0) {
+            setCurrentSection(null);
+        }
+    }, [sections, currentSection])
+
+    const handleSectionSelect = (section) => {
+        setCurrentSection(section);
+        setCurrentLine(null);
+        resetFlightState();
+    };
+
     const handleBundledKmlSelect = (filename) => {
         if (!filename) return;
         fetch(`${config.bundledKmlDir}${filename}`)
             .then(res => res.text())
             .then(content => {
-                const parsedLines = applyGeoidUndulation(parseKML(content));
+                const parsedLines = applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
                 setLines(parsedLines);
                 localStorage.setItem('customKml', content);
+                localStorage.setItem('customFileName', filename);
                 setCurrentLine(null);
+                setCurrentSection(null);
                 resetFlightState();
                 showToast(`Loaded ${filename}`, "success");
             })
@@ -168,12 +202,14 @@ function App() {
         reader.onload = (e) => {
             const content = e.target.result;
             try {
-                const parsedLines = applyGeoidUndulation(parseKML(content));
+                const parsedLines = parseFlightFile(file.name, content);
                 setLines(parsedLines);
                 localStorage.setItem('customKml', content);
+                localStorage.setItem('customFileName', file.name);
                 setCurrentLine(null);
+                setCurrentSection(null);
                 resetFlightState();
-                showToast("Sucessfully Imported KML", "success");
+                showToast("Sucessfully Imported Flight File", "success");
             } catch (err) {
                 showToast(`Error: ${err.message}`, "error");
                 console.error(err);
@@ -184,6 +220,7 @@ function App() {
 
     const clearCustomKml = () => {
         localStorage.removeItem('customKml');
+        localStorage.removeItem('customFileName');
         window.location.reload();
     };
 
@@ -296,7 +333,7 @@ function App() {
         });
 
         // Optionally auto-select it if no line is currently selected
-        const line = lines.find(l => l.seq === seq);
+        const line = lines.find(l => l.section === currentSection && l.seq === seq);
         if (line) {
             showToast(`Restored Line ${seq}`, "success");
             if (!currentLine) {
@@ -338,7 +375,7 @@ function App() {
     const advanceToNextLine = () => {
         if (!currentLine) return;
         const nextSeq = currentLine.seq + 1;
-        const nextLine = lines.find(l => l.seq >= nextSeq && !completedLines.has(l.seq));
+        const nextLine = lines.find(l => l.section === currentLine.section && l.seq >= nextSeq && !completedLines.has(l.seq));
         if (nextLine) {
             handleLineSelect(nextLine);
             showToast(`Switched to Line ${nextLine.seq}`, "success");
@@ -572,7 +609,8 @@ function App() {
         renderHudData.targetHeading = lineBearing;
     }
 
-    const availableLines = lines.filter(l => !completedLines.has(l.seq));
+    const sectionLines = lines.filter(l => l.section === currentSection);
+    const availableLines = sectionLines.filter(l => !completedLines.has(l.seq));
 
     return (
         <div className="app-container" style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -593,8 +631,12 @@ function App() {
                     onLineSelect={handleLineSelect}
                     direction={direction}
                     onDirectionToggle={toggleDirection}
-                    completedLines={lines.filter(l => completedLines.has(l.seq))}
+                    completedLines={sectionLines.filter(l => completedLines.has(l.seq))}
                     onLineRestore={handleLineRestore}
+                    // Section Props
+                    sections={sections}
+                    currentSection={currentSection}
+                    onSectionSelect={handleSectionSelect}
                     // Flight Control Props
                     flightStatus={flightStatus}
                     onToggleFlight={toggleFlight}
@@ -641,7 +683,7 @@ function App() {
                     <>
                         <Suspense fallback={null}>
                             <FullMap
-                                lines={lines}
+                                lines={sectionLines}
                                 currentLine={currentLine}
                                 gpsData={gpsData}
                                 direction={direction}

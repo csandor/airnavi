@@ -10,6 +10,10 @@ const LineSelector = ({
     onDirectionToggle,
     completedLines = [],
     onLineRestore,
+    // Section Props
+    sections = [],
+    currentSection,
+    onSectionSelect,
     // Flight Control Props
     flightStatus,
     onToggleFlight,
@@ -52,6 +56,38 @@ const LineSelector = ({
                 marginBottom: 'var(--spacing-md)',
                 zIndex: 10
             }}>
+                {sections.length > 1 && (
+                    <div style={{ flex: 1 }}>
+                        <label style={{
+                            display: 'block',
+                            fontSize: '0.8em',
+                            color: 'var(--color-text-secondary)',
+                            marginBottom: 'var(--spacing-xs)'
+                        }}>
+                            Select Section
+                        </label>
+                        <select
+                            value={currentSection ?? ''}
+                            onChange={(e) => onSectionSelect(parseInt(e.target.value, 10))}
+                            style={{
+                                width: '100%',
+                                padding: 'var(--spacing-sm)',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                background: 'rgba(0,0,0,0.3)',
+                                color: 'white',
+                                fontSize: '1em'
+                            }}
+                        >
+                            {sections.map(section => (
+                                <option key={section} value={section}>
+                                    Section {section}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 <div style={{ flex: 1 }}>
                     <label style={{
                         display: 'block',

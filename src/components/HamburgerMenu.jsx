@@ -101,12 +101,12 @@ const HamburgerMenu = ({
 
                     <div style={{ position: 'relative' }}>
                         <MenuButton
-                            label="📂 Load KML"
+                            label="📂 Load Flight File"
                             component="label"
                         >
                             <input
                                 type="file"
-                                accept=".kml"
+                                accept=".kml,.txt"
                                 onChange={(e) => {
                                     onKmlImport(e);
                                     setIsOpen(false);
