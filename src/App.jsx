@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { parseKML } from './utils/KMLParser'
 import { parseTXT } from './utils/TxtParser'
 import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance, destinationPoint } from './utils/GeoUtils'
+import { classifyQuality, worseQuality } from './utils/QualityUtils'
 import { planDubinsPath } from './utils/DubinsUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { flightLogger } from './utils/FlightLogger'
@@ -72,6 +73,7 @@ function App() {
     const [bundledKmlFiles, setBundledKmlFiles] = useState([]);
     const completionLock = useRef(false); // Lock to prevent double logging
     const greenCoverage = useRef(new Set()); // Track meters covered in green
+    const chunkQuality = useRef(new Map()); // chunk index -> worst quality ('green'|'yellow'|'red') seen while flying
     const prevAlongTrack = useRef(null); // Track previous position for delta
 
     // HUD halo offset — updated by VisualNav when layout is computed
@@ -328,6 +330,7 @@ function App() {
         flightLogger.reset();
         completionLock.current = false;
         greenCoverage.current.clear();
+        chunkQuality.current.clear();
         prevAlongTrack.current = null;
     };
 
@@ -584,6 +587,17 @@ function App() {
             }
         }
 
+        // Update per-chunk quality (worst quality ever seen wins) for map track coloring
+        if (prevAlongTrack.current !== null) {
+            const quality = classifyQuality(crossTrackDist, altDiff, runtimeSettings.limits);
+            const segLen = config.qualitySegmentLength;
+            const startChunk = Math.floor(Math.min(prevAlongTrack.current, currentAlongTrack) / segLen);
+            const endChunk = Math.floor(Math.max(prevAlongTrack.current, currentAlongTrack) / segLen);
+            for (let c = startChunk; c <= endChunk; c++) {
+                chunkQuality.current.set(c, worseQuality(chunkQuality.current.get(c), quality));
+            }
+        }
+
         // Update Logger
         flightLogger.updateStats(currentHudData);
         flightLogger.recordPoint({ ...gpsData, alt: gpsData.alt - config.geoidUndulation });
@@ -730,6 +744,9 @@ function App() {
                                 dubinsPath={dubinsPath}
                                 autoZoom={autoZoom}
                                 onToggleAutoZoom={toggleAutoZoom}
+                                flightStatus={flightStatus}
+                                chunkQuality={Object.fromEntries(chunkQuality.current)}
+                                qualitySegmentLength={config.qualitySegmentLength}
                             />
                         </Suspense>
                         {currentLine && (

@@ -1,6 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { calculateAlongTrackDistance } from '../utils/GeoUtils';
+
+const QUALITY_COLORS = {
+    green: '#00ff00',
+    yellow: '#ffcc00',
+    red: '#ff0000'
+};
+const DEFAULT_PATH_COLOR = 'rgba(255, 200, 0, 0.6)';
 
 const OSM_STYLE = {
     version: 8,
@@ -36,7 +44,7 @@ const lineToLabelGeoJSON = (line) => ({
     }
 });
 
-const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsPath, autoZoom = true, onToggleAutoZoom }) => {
+const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsPath, autoZoom = true, onToggleAutoZoom, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const [loaded, setLoaded] = useState(false);
@@ -111,7 +119,7 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
                 id: 'path-layer',
                 type: 'line',
                 source: 'path',
-                paint: { 'line-color': 'rgba(255, 200, 0, 0.6)', 'line-width': 2 }
+                paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_PATH_COLOR], 'line-width': 3 }
             });
 
             map.addSource('aircraft', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -262,14 +270,33 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
         });
 
         const path = pathRef.current;
-        map.getSource('path').setData({
-            type: 'FeatureCollection',
-            features: path.length > 1 ? [{
-                type: 'Feature',
-                properties: {},
-                geometry: { type: 'LineString', coordinates: path.map(p => [p.lon, p.lat]) }
-            }] : []
-        });
+        let pathFeatures = [];
+        if (path.length > 1) {
+            if (flightStatus === 'flying' && chunkQuality) {
+                // While recording, render one short segment per consecutive point pair,
+                // colored by the worst quality recorded for the chunk it falls in.
+                pathFeatures = [];
+                for (let i = 1; i < path.length; i++) {
+                    const prevPoint = path[i - 1];
+                    const point = path[i];
+                    const alongTrack = calculateAlongTrackDistance(point, start, end);
+                    const chunk = Math.floor(alongTrack / qualitySegmentLength);
+                    const quality = chunkQuality[chunk];
+                    pathFeatures.push({
+                        type: 'Feature',
+                        properties: { color: quality ? QUALITY_COLORS[quality] : DEFAULT_PATH_COLOR },
+                        geometry: { type: 'LineString', coordinates: [[prevPoint.lon, prevPoint.lat], [point.lon, point.lat]] }
+                    });
+                }
+            } else {
+                pathFeatures = [{
+                    type: 'Feature',
+                    properties: {},
+                    geometry: { type: 'LineString', coordinates: path.map(p => [p.lon, p.lat]) }
+                }];
+            }
+        }
+        map.getSource('path').setData({ type: 'FeatureCollection', features: pathFeatures });
 
         const hasAircraft = gpsData && gpsData.lat !== 0;
         map.getSource('aircraft').setData({
@@ -301,7 +328,7 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
             [[minLon - paddingLon, minLat - paddingLat], [maxLon + paddingLon, maxLat + paddingLat]],
             { animate: false }
         );
-    }, [loaded, currentLine, gpsData, direction, lines, autoZoom]);
+    }, [loaded, currentLine, gpsData, direction, lines, autoZoom, flightStatus, chunkQuality, qualitySegmentLength]);
 
     // Draw the planned Dubins path (planning mode overlay)
     useEffect(() => {

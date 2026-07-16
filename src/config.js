@@ -34,6 +34,9 @@ const config = {
         maxAltDiff: 200,    // vertical:   +/- this many meters -> +/- 2*compassRadius px
     },
 
+    // Length of each colored chunk (meters) when rendering the flown track's quality on the map
+    qualitySegmentLength: 10,
+
     // Limits for Halo Colors (meters)
     limits: {
         green: 2,   // Within this cross-track error -> Green Halo & Completes Line
