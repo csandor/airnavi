@@ -43,7 +43,9 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
             textAlign: 'center',
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
             border: `1px solid ${isSuccess ? 'var(--color-success)' : 'var(--color-danger)'}`,
-            background: 'hsl(var(--color-bg-secondary))',
+            background: isSuccess
+                ? 'linear-gradient(rgba(0, 200, 0, 0.25), rgba(0, 200, 0, 0.25)), hsl(var(--color-bg-secondary))'
+                : 'linear-gradient(rgba(200, 0, 0, 0.25), rgba(200, 0, 0, 0.25)), hsl(var(--color-bg-secondary))',
             backdropFilter: 'none',
         }}>
             <h2 style={{ marginBottom: 'var(--spacing-md)' }}>Flight Summary</h2>
