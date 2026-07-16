@@ -153,7 +153,7 @@ const LineSelector = ({
                         <option value="">-- Completed --</option>
                         {completedLines.map(line => (
                             <option key={line.seq} value={line.seq}>
-                                Line {line.seq}
+                                {sections.length > 1 ? `Section ${line.section} - Line ${line.seq}` : `Line ${line.seq}`}
                             </option>
                         ))}
                     </select>
