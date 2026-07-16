@@ -1,14 +1,2 @@
 {
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && if ! git diff --quiet || ! git diff --cached --quiet; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"Stop\",\"additionalContext\":\"Reminder: there are uncommitted changes. Generate a commit message summarizing them (do not commit) unless you already did this turn.\"}}'; fi"
-          }
-        ]
-      }
-    ]
-  }
 }

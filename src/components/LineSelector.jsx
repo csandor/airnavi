@@ -40,7 +40,6 @@ const LineSelector = ({
     planningMode,
     onTogglePlanningMode
 }) => {
-    console.log("LineSelector Props:", { linesCount: lines.length, completedCount: completedLines.length });
     const isFlying = flightStatus === 'flying';
 
     return (
