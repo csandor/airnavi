@@ -87,6 +87,7 @@ function App() {
     const [showMiniMap, setShowMiniMap] = useState(true);
     const [mapMaximized, setMapMaximized] = useState(false);
     const [autoZoom, setAutoZoom] = useState(true);
+    const lastMapBounds = useRef(null); // Remembers FullMap extents across HUD<->Map switches while auto zoom is off
 
     // Dubins path planning mode
     const [planningMode, setPlanningMode] = useState(false);
@@ -757,6 +758,8 @@ function App() {
                                 dubinsPath={dubinsPath}
                                 autoZoom={autoZoom}
                                 onToggleAutoZoom={toggleAutoZoom}
+                                initialBounds={lastMapBounds.current}
+                                onBoundsChange={(bounds) => { lastMapBounds.current = bounds; }}
                                 flightStatus={flightStatus}
                                 chunkQuality={Object.fromEntries(chunkQuality.current)}
                                 qualitySegmentLength={config.qualitySegmentLength}

@@ -40,10 +40,12 @@ const lineToLabelGeoJSON = (line, completed = false) => ({
     }
 });
 
-const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLineSelect, dubinsPath, autoZoom = true, onToggleAutoZoom, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
+const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLineSelect, dubinsPath, autoZoom = true, onToggleAutoZoom, initialBounds, onBoundsChange, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const [loaded, setLoaded] = useState(false);
+    const autoZoomRef = useRef(autoZoom);
+    useEffect(() => { autoZoomRef.current = autoZoom; }, [autoZoom]);
 
     // Init map once
     useEffect(() => {
@@ -55,6 +57,9 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
         mapRef.current = map;
 
         map.on('load', () => {
+            if (initialBounds) {
+                map.fitBounds(initialBounds, { animate: false });
+            }
             map.addSource('all-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
             map.addLayer({
                 id: 'all-lines-layer',
@@ -159,6 +164,10 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
         });
 
         return () => {
+            if (!autoZoomRef.current && onBoundsChange) {
+                const b = map.getBounds();
+                onBoundsChange([[b.getWest(), b.getSouth()], [b.getEast(), b.getNorth()]]);
+            }
             map.remove();
             mapRef.current = null;
         };
