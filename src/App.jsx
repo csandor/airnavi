@@ -452,7 +452,13 @@ function App() {
                 alt: start.alt
             };
 
-            gpsEmulator.startSimulation(preStart, end, config.simulation.speedKnots, (pos) => {
+            const postEnd = {
+                lat: end.lat + (end.lat - start.lat) * config.simulation.preStartDistanceFactor,
+                lon: end.lon + (end.lon - start.lon) * config.simulation.preStartDistanceFactor,
+                alt: end.alt
+            };
+
+            gpsEmulator.startSimulation(preStart, postEnd, config.simulation.speedKnots, (pos) => {
                 setGpsData(pos);
             });
         }
@@ -487,6 +493,12 @@ function App() {
         const distToStart = calculateDistance(gpsData.lat, gpsData.lon, start.lat, start.lon) * 1000;
         const distToEnd = calculateDistance(gpsData.lat, gpsData.lon, end.lat, end.lon) * 1000;
         const nearEndpoint = distToStart <= runtimeSettings.limits.start_radius || distToEnd <= runtimeSettings.limits.start_radius;
+
+        // Only allow auto-start near the start of the line, not the end (e.g. overshooting
+        // past the endpoint in simulation shouldn't immediately re-trigger recording).
+        const totalLen = calculateDistance(start.lat, start.lon, end.lat, end.lon) * 1000;
+        const alongTrack = calculateAlongTrackDistance(gpsData, start, end);
+        if (alongTrack >= totalLen) return;
 
         if (nearEndpoint &&
             Math.abs(crossTrackDist) <= runtimeSettings.limits.green &&
