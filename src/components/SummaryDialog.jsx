@@ -42,7 +42,7 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
             maxWidth: '400px',
             textAlign: 'center',
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-            border: `1px solid ${isSuccess ? 'var(--color-success)' : 'var(--color-danger)'}`,
+            border: `1px solid ${isSuccess ? 'hsl(var(--color-success))' : 'hsl(var(--color-danger))'}`,
             background: isSuccess
                 ? 'linear-gradient(rgba(0, 200, 0, 0.25), rgba(0, 200, 0, 0.25)), hsl(var(--color-bg-secondary))'
                 : 'linear-gradient(rgba(200, 0, 0, 0.25), rgba(200, 0, 0, 0.25)), hsl(var(--color-bg-secondary))',
@@ -54,7 +54,7 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
                 <p><strong>Line ID:</strong> {session.lineId}</p>
                 <p><strong>Direction:</strong> {session.direction}</p>
                 <p><strong>Duration:</strong> {session.duration.toFixed(1)}s</p>
-                <p style={{ color: isSuccess ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                <p style={{ color: isSuccess ? 'hsl(var(--color-success))' : 'hsl(var(--color-danger))' }}>
                     <strong>Completion:</strong> {session.completionPct}%
                 </p>
                 <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '10px 0' }} />
@@ -69,14 +69,14 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
             <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
                 <button
                     className="btn-primary"
-                    style={{ flex: 1, background: 'var(--color-danger)', opacity: isSuccess ? 0.5 : 1 }}
+                    style={{ flex: 1, background: 'hsl(var(--color-danger))', opacity: isSuccess ? 0.5 : 1 }}
                     onClick={onReject}
                 >
                     Reject (Delete)
                 </button>
                 <button
                     className="btn-primary"
-                    style={{ flex: 1, background: 'var(--color-success)', opacity: !isSuccess ? 0.5 : 1 }}
+                    style={{ flex: 1, background: 'hsl(var(--color-success))', opacity: !isSuccess ? 0.5 : 1 }}
                     onClick={onKeep}
                 >
                     Keep (Save)

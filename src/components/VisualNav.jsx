@@ -218,7 +218,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
                     if (deg === 270) label = 'W';
 
                     const fontSize = Math.max(8, Math.round(radius * 0.19));
-                    ctx.fillStyle = isCardinal ? 'var(--color-success)' : 'white';
+                    ctx.fillStyle = 'white';
                     ctx.font = isCardinal ? `bold ${fontSize}px Arial` : `${Math.max(7, Math.round(radius * 0.14))}px Arial`;
                     ctx.fillText(label, 0, 0);
                     ctx.restore();
@@ -279,7 +279,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
                 drawAirplane(0, 0, radius / BASE_RADIUS * 0.8);
 
                 // Top Indicator (Lubber Line)
-                ctx.strokeStyle = 'var(--color-danger)';
+                ctx.strokeStyle = 'white';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
                 ctx.moveTo(0, -radius - radius * 0.07);

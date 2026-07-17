@@ -42,7 +42,7 @@ const LineSelector = ({
 
     return (
         <>
-            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-xs)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'hsl(var(--color-text-secondary))', marginBottom: 'var(--spacing-xs)' }}>
                 AirNavi v{version}
             </div>
 
@@ -59,7 +59,7 @@ const LineSelector = ({
                         <label style={{
                             display: 'block',
                             fontSize: '0.8em',
-                            color: 'var(--color-text-secondary)',
+                            color: 'hsl(var(--color-text-secondary))',
                             marginBottom: 'var(--spacing-xs)'
                         }}>
                             Select Section
@@ -90,7 +90,7 @@ const LineSelector = ({
                     <label style={{
                         display: 'block',
                         fontSize: '0.8em',
-                        color: 'var(--color-text-secondary)',
+                        color: 'hsl(var(--color-text-secondary))',
                         marginBottom: 'var(--spacing-xs)'
                     }}>
                         Select Flight Line
@@ -126,7 +126,7 @@ const LineSelector = ({
                     <label style={{
                         display: 'block',
                         fontSize: '0.8em',
-                        color: 'var(--color-text-secondary)',
+                        color: 'hsl(var(--color-text-secondary))',
                         marginBottom: 'var(--spacing-xs)'
                     }}>
                         Restore Completed
@@ -141,9 +141,9 @@ const LineSelector = ({
                             width: '100%',
                             padding: 'var(--spacing-sm)',
                             borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--color-success)',
+                            border: '1px solid rgba(255,255,255,0.1)',
                             background: 'rgba(0,0,0,0.3)',
-                            color: 'var(--color-success)',
+                            color: 'white',
                             fontSize: '1em'
                         }}
                     >
@@ -162,7 +162,7 @@ const LineSelector = ({
                     <label style={{
                         display: 'block',
                         fontSize: '0.8em',
-                        color: 'var(--color-text-secondary)',
+                        color: 'hsl(var(--color-text-secondary))',
                         marginBottom: 'var(--spacing-xs)'
                     }}>
                         Direction
@@ -194,9 +194,9 @@ const LineSelector = ({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: isFlying ? 'var(--color-danger)' : 'rgba(255, 255, 255, 0.1)',
-                            border: isFlying ? 'none' : '1px solid var(--color-success)',
-                            color: isFlying ? 'white' : 'var(--color-success)'
+                            background: isFlying ? 'hsl(var(--color-danger))' : 'rgba(255, 255, 255, 0.1)',
+                            border: isFlying ? 'none' : '1px solid hsl(var(--color-success))',
+                            color: isFlying ? 'white' : 'hsl(var(--color-success))'
                         }}
                         title={isFlying ? "Stop Recording" : "Start Flying"}
                     >
@@ -254,7 +254,7 @@ const LineSelector = ({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: planningMode ? 'var(--color-danger)' : 'rgba(255, 255, 255, 0.1)',
+                            background: planningMode ? 'hsl(var(--color-danger))' : 'rgba(255, 255, 255, 0.1)',
                             border: planningMode ? 'none' : '1px solid rgba(255,255,255,0.2)',
                             color: 'white',
                             opacity: (mapMaximized && !isFlying) ? 1 : 0.5,

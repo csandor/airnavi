@@ -18,7 +18,10 @@ const FIELD_GROUPS = [
             { key: 'vertical_green', label: 'Vertical Green (m)', hint: 'Within this altitude error -> Green' },
             { key: 'vertical_yellow', label: 'Vertical Yellow (m)', hint: 'Within this -> Yellow. Above -> Red' },
             { key: 'heading_green', label: 'Heading Green (deg)', hint: 'Within this heading error -> auto-start recording' },
+            { key: 'heading_yellow', label: 'Heading Yellow (deg)', hint: 'Within this -> Yellow. Above -> Red' },
             { key: 'start_radius', label: 'Line Autostart Distance (m)', hint: 'Must be within this distance of start or end point to auto-start recording' },
+            { key: 'speed_green', label: 'Speed Green (kts)', hint: 'Below this speed -> Green Speed' },
+            { key: 'speed_yellow', label: 'Speed Yellow (kts)', hint: 'Below this speed -> Yellow Speed. Above -> Red' },
         ]
     },
     {
@@ -90,7 +93,7 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
             <h2 style={{ marginBottom: 'var(--spacing-md)' }}>Settings</h2>
 
             <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'var(--color-text-secondary)' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
                     Units
                 </h3>
                 <button
@@ -109,7 +112,7 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
 
             {FIELD_GROUPS.map(group => (
                 <div key={group.key} style={{ marginBottom: 'var(--spacing-lg)' }}>
-                    <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'var(--color-text-secondary)' }}>
+                    <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
                         {group.title}
                     </h3>
                     {group.fields.map(field => (
@@ -139,7 +142,7 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
             <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
                 <button
                     className="btn-primary"
-                    style={{ flex: 1, background: 'var(--color-danger)' }}
+                    style={{ flex: 1, background: 'hsl(var(--color-danger))' }}
                     onClick={handleReset}
                 >
                     Reset to Defaults
@@ -153,7 +156,7 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
                 </button>
                 <button
                     className="btn-primary"
-                    style={{ flex: 1, background: 'var(--color-success)' }}
+                    style={{ flex: 1, background: 'hsl(var(--color-success))' }}
                     onClick={handleSave}
                 >
                     Save

@@ -83,7 +83,6 @@ const HamburgerMenu = ({
                     <MenuButton
                         onClick={() => handleAction(onToggleSimulation)}
                         label={simulating ? '⏹ Stop Sim' : '▶ Simulate Flight'}
-                        color={simulating ? 'var(--color-danger)' : 'var(--color-success)'}
                     />
                     <MenuButton
                         onClick={() => handleAction(onOpenSettings)}
@@ -151,7 +150,6 @@ const HamburgerMenu = ({
                         <MenuButton
                             onClick={() => handleAction(onReset)}
                             label="🔄 Reset KML"
-                            color="var(--color-danger)"
                         />
                     )}
                 </div>

@@ -116,7 +116,7 @@ const Arrow = ({ direction }) => {
 
     return (
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: `rotate(${rotation}deg)`, filter: 'drop-shadow(0 0 5px rgba(0,0,0,0.5))', color: 'var(--color-accent-primary)' }}>
+            style={{ transform: `rotate(${rotation}deg)`, filter: 'drop-shadow(0 0 5px rgba(0,0,0,0.5))', color: 'white' }}>
             <line x1="12" y1="19" x2="12" y2="5"></line>
             <polyline points="5 12 12 5 19 12"></polyline>
         </svg>

@@ -1,6 +1,6 @@
 const config = {
     // Flight Logic
-    completionThreshold: 98, // Percentage required to mark flight as "Success"
+    completionThreshold: 90, // Percentage required to mark flight as "Success"
 
     // Data Source
     kmlFilePath: './lines.kml',
@@ -19,8 +19,8 @@ const config = {
 
     // Simulation Settings
     simulation: {
-        speedKnots: 10,
-        preStartDistanceFactor: 0.1, // Start 5% before the actual start point
+        speedKnots: 60,
+        preStartDistanceFactor: 0.1, // Start this fraction of the line length before the start point, and continue the same distance past the end point
         jitter: {
             horizontalMeters: 10, // Max +/- deviation in meters
             alt: 40,               // +/- 20m
@@ -44,7 +44,10 @@ const config = {
         vertical_green: 2, // Within this altitude error -> Green
         vertical_yellow: 4, // Within this -> Yellow. Above -> Red.
         heading_green: 5,  // Within this heading error (degrees) -> auto-start recording
-        start_radius: 10   // Must be within this distance (meters) of start or end point to auto-start recording
+        heading_yellow: 10, // Within this heading error (degrees) -> Yellow. Above -> Red.
+        start_radius: 10,  // Must be within this distance (meters) of start or end point to auto-start recording
+        speed_green: 50,   // Below this speed (knots) -> Green Speed. Above -> Yellow/Red.
+        speed_yellow: 70  // Below this speed (knots) -> Yellow Speed. Above -> Red.
     },
 
     // Dubins path planning mode (big map guidance to the flight line start)
