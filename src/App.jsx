@@ -737,6 +737,7 @@ function App() {
                         <Suspense fallback={null}>
                             <FullMap
                                 lines={sectionLines}
+                                completedLines={completedLines}
                                 currentLine={currentLine}
                                 gpsData={gpsData}
                                 direction={direction}

@@ -31,16 +31,16 @@ const lineToGeoJSON = (line) => ({
     }
 });
 
-const lineToLabelGeoJSON = (line) => ({
+const lineToLabelGeoJSON = (line, completed = false) => ({
     type: 'Feature',
-    properties: { seq: line.seq, label: String(line.seq) },
+    properties: { seq: line.seq, label: String(line.seq), completed },
     geometry: {
         type: 'Point',
         coordinates: [(line.start.lon + line.end.lon) / 2, (line.start.lat + line.end.lat) / 2]
     }
 });
 
-const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsPath, autoZoom = true, onToggleAutoZoom, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
+const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLineSelect, dubinsPath, autoZoom = true, onToggleAutoZoom, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const [loaded, setLoaded] = useState(false);
@@ -63,6 +63,14 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
                 paint: { 'line-color': '#00e5ff', 'line-width': 4, 'line-opacity': 0.9 }
             });
 
+            map.addSource('completed-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({
+                id: 'completed-lines-layer',
+                type: 'line',
+                source: 'completed-lines',
+                paint: { 'line-color': '#888888', 'line-width': 4, 'line-opacity': 0.7 }
+            });
+
             map.addSource('line-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
             map.addLayer({
                 id: 'line-labels-layer',
@@ -75,7 +83,7 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
                     'text-allow-overlap': true
                 },
                 paint: {
-                    'text-color': '#ffffff',
+                    'text-color': ['case', ['get', 'completed'], '#aaaaaa', '#ffffff'],
                     'text-halo-color': '#000000',
                     'text-halo-width': 2
                 }
@@ -164,16 +172,25 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
         return () => ro.disconnect();
     }, []);
 
-    // Draw all lines (dimmed) with number labels
+    // Draw all lines with number labels — completed lines render grey and separately from active ones
     useEffect(() => {
         if (!loaded || !mapRef.current) return;
         const map = mapRef.current;
-        const features = (lines || []).map(lineToGeoJSON);
-        map.getSource('all-lines').setData({ type: 'FeatureCollection', features });
-        map.getSource('line-labels').setData({ type: 'FeatureCollection', features: (lines || []).map(lineToLabelGeoJSON) });
-    }, [loaded, lines]);
+        const activeLines = (lines || []).filter(l => !completedLines || !completedLines.has(l.seq));
+        const doneLines = (lines || []).filter(l => completedLines && completedLines.has(l.seq));
 
-    // Tap-to-select: click a line (or its label) to select it
+        map.getSource('all-lines').setData({ type: 'FeatureCollection', features: activeLines.map(lineToGeoJSON) });
+        map.getSource('completed-lines').setData({ type: 'FeatureCollection', features: doneLines.map(lineToGeoJSON) });
+        map.getSource('line-labels').setData({
+            type: 'FeatureCollection',
+            features: [
+                ...activeLines.map(l => lineToLabelGeoJSON(l, false)),
+                ...doneLines.map(l => lineToLabelGeoJSON(l, true))
+            ]
+        });
+    }, [loaded, lines, completedLines]);
+
+    // Tap-to-select: click a line (or its label) to select it — completed lines are not selectable
     useEffect(() => {
         if (!loaded || !mapRef.current || !onLineSelect) return;
         const map = mapRef.current;
@@ -183,27 +200,25 @@ const FullMap = ({ lines, currentLine, gpsData, direction, onLineSelect, dubinsP
             const features = map.queryRenderedFeatures(e.point, { layers: layerIds });
             if (!features.length) return;
             const seq = features[0].properties.seq;
+            if (completedLines && completedLines.has(seq)) return;
             const line = (lines || []).find(l => l.seq === seq);
             if (line) onLineSelect(line);
         };
 
-        const handleEnter = () => { map.getCanvas().style.cursor = 'pointer'; };
-        const handleLeave = () => { map.getCanvas().style.cursor = ''; };
+        const handleMove = (e) => {
+            const features = map.queryRenderedFeatures(e.point, { layers: layerIds });
+            const selectable = features.length && !(completedLines && completedLines.has(features[0].properties.seq));
+            map.getCanvas().style.cursor = selectable ? 'pointer' : '';
+        };
 
         map.on('click', handleClick);
-        layerIds.forEach(id => {
-            map.on('mouseenter', id, handleEnter);
-            map.on('mouseleave', id, handleLeave);
-        });
+        map.on('mousemove', handleMove);
 
         return () => {
             map.off('click', handleClick);
-            layerIds.forEach(id => {
-                map.off('mouseenter', id, handleEnter);
-                map.off('mouseleave', id, handleLeave);
-            });
+            map.off('mousemove', handleMove);
         };
-    }, [loaded, lines, onLineSelect]);
+    }, [loaded, lines, completedLines, onLineSelect]);
 
     // Draw current line (highlighted), endpoints, path history, aircraft, and fit bounds
     // using the same bounds + 20% padding strategy as MiniMap.
