@@ -20,8 +20,6 @@ const LineSelector = ({
     // Menu Props
     simulating,
     onToggleSimulation,
-    units,
-    onToggleUnits,
     onDownloadCSV,
     onDownloadKMZ,
     onKmlImport,
@@ -273,8 +271,6 @@ const LineSelector = ({
                 <HamburgerMenu
                     simulating={simulating}
                     onToggleSimulation={onToggleSimulation}
-                    units={units}
-                    onToggleUnits={onToggleUnits}
                     onDownloadCSV={onDownloadCSV}
                     onDownloadKMZ={onDownloadKMZ}
                     onKmlImport={onKmlImport}

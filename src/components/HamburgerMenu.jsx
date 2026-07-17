@@ -3,8 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 const HamburgerMenu = ({
     simulating,
     onToggleSimulation,
-    units,
-    onToggleUnits,
     onDownloadCSV,
     onDownloadKMZ,
     onKmlImport,
@@ -86,10 +84,6 @@ const HamburgerMenu = ({
                         onClick={() => handleAction(onToggleSimulation)}
                         label={simulating ? '⏹ Stop Sim' : '▶ Simulate Flight'}
                         color={simulating ? 'var(--color-danger)' : 'var(--color-success)'}
-                    />
-                    <MenuButton
-                        onClick={() => handleAction(onToggleUnits)}
-                        label={`📏 Units: ${units === 'metric' ? 'MET' : 'IMP'}`}
                     />
                     <MenuButton
                         onClick={() => handleAction(onOpenSettings)}

@@ -41,7 +41,7 @@ const toFormStrings = (settings) => Object.fromEntries(
     ])
 );
 
-const SettingsDialog = ({ settings, onSave, onReset, onClose }) => {
+const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUnits }) => {
     const [form, setForm] = useState(() => toFormStrings(settings));
 
     const handleChange = (groupKey, fieldKey, rawValue) => {
@@ -88,6 +88,24 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose }) => {
             backdropFilter: 'none',
         }}>
             <h2 style={{ marginBottom: 'var(--spacing-md)' }}>Settings</h2>
+
+            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'var(--color-text-secondary)' }}>
+                    Units
+                </h3>
+                <button
+                    className="btn-primary"
+                    onClick={onToggleUnits}
+                    style={{
+                        width: '100%',
+                        padding: 'var(--spacing-sm)',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                >
+                    {units === 'metric' ? 'Metric' : 'Imperial'}
+                </button>
+            </div>
 
             {FIELD_GROUPS.map(group => (
                 <div key={group.key} style={{ marginBottom: 'var(--spacing-lg)' }}>

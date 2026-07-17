@@ -698,8 +698,6 @@ function App() {
                     // Menu Props
                     simulating={simulating}
                     onToggleSimulation={toggleSimulation}
-                    units={units}
-                    onToggleUnits={() => setUnits(u => u === 'metric' ? 'imperial' : 'metric')}
                     onDownloadCSV={() => flightLogger.downloadCSV()}
                     onDownloadKMZ={() => downloadKMZ(flightLogger.history)}
                     onKmlImport={handleKmlImport}
@@ -734,6 +732,8 @@ function App() {
                     onSave={updateRuntimeSettings}
                     onReset={resetRuntimeSettings}
                     onClose={() => setShowSettings(false)}
+                    units={units}
+                    onToggleUnits={() => setUnits(u => u === 'metric' ? 'imperial' : 'metric')}
                 />
             )}
 
