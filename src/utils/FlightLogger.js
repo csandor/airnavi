@@ -74,6 +74,10 @@ export class FlightLogger {
         }
     }
 
+    clearHistory() {
+        this.history = [];
+    }
+
     downloadCSV() {
         if (this.history.length === 0) {
             alert("No flight logs to download.");

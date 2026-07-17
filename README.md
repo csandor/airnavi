@@ -109,8 +109,8 @@ AirNavi is a PWA — no app store required.
 ### Loading a flight file
 - On startup the app loads the bundled `lines.kml` from `public/kml/`.
 - To use your own file: open the **hamburger menu** (top right) → **Load Flight File** → pick a `.kml` or `.txt` file from your device. The file's content is stored in the browser's `localStorage` and reloaded automatically on the next launch.
-- **Sample KMLs** — bundled files in `public/kml/` are listed in the menu under **Sample KMLs**.
-- To go back to the default: menu → **Reset KML**.
+- **Missions** — bundled files in `public/kml/` are listed in the menu under **Missions**.
+- Menu → **Reset Mission** clears flight progress on the currently loaded mission — completed lines, flight logs, and any in-progress recording/simulation — without unloading it, as if it had just been loaded. It does not switch back to the default flight file; use **Load Flight File** or **Missions** for that.
 
 ### Sections
 Fixed-width TXT files (see [TXT File Format](#txt-file-format)) can group flight lines into **sections**. When a loaded file contains more than one section, a **Select Section** dropdown appears to the left of the Line Selector. Picking a section filters the Line Selector, the completed-lines list, and the full-screen map to that section only; KML files always contain a single implicit section, so the selector stays hidden.
@@ -126,14 +126,17 @@ Use the **Line Selector** dropdown to pick the line you want to fly. Lines are n
 | Heading arrow | Difference between current heading and line bearing. |
 | Distance | Distance to the next endpoint (or to the start if not yet on the line). |
 
+The distance readout bar at the bottom also color-codes **X-Track**, **Hdg Diff**, **Alt Diff**, and **Speed**, each escalating white → yellow → red past its configured green/yellow limit (see [Configuration](#configuration)).
+
 ### Auto-recording
 Recording starts automatically when **all** of the following are true simultaneously:
+- The aircraft hasn't already passed the line's far endpoint
 - Within `start_radius` meters of the line's start or end point (default 10 m)
 - Cross-track error ≤ green limit (default 2 m)
 - Vertical error ≤ vertical green limit (default 2 m)
 - Heading error ≤ heading green limit (default 5°)
 
-Recording stops automatically when the aircraft crosses the far endpoint of the line (98% completion threshold). The **Flight Summary** dialog appears; choose **Keep** to log the result or **Reject** to discard it. The dialog auto-dismisses after 10 seconds defaulting to the appropriate action based on completion.
+Recording stops automatically when the aircraft crosses the far endpoint of the line (completion threshold, default 90%). The **Flight Summary** dialog appears; choose **Keep** to log the result or **Reject** to discard it. The dialog auto-dismisses after 10 seconds defaulting to the appropriate action based on completion.
 
 You can also start/stop recording manually using the record button in the UI.
 
@@ -143,23 +146,26 @@ After a line is completed the app automatically selects the next line by sequenc
 ### Simulation mode
 Menu → **Simulate Flight** runs a virtual GPS along the currently selected line. Useful for testing without being airborne. Stop it from the same menu entry.
 
-### Units
-Menu → **Units** toggles between metric (m, km/h) and imperial (ft, knots).
-
 ### Settings
-Menu → **⚙ Settings** opens a dialog to edit the crosshair, halo-limit, and Dubins path-planning values live (see [Runtime Settings](#runtime-settings)) without rebuilding the app. Changes take effect immediately and persist across reloads; a **Reset to Defaults** button restores the values from `src/config.js`.
+Menu → **⚙ Settings** opens a dialog to:
+- Toggle **Units** between metric (m, km/h) and imperial (ft, knots).
+- Toggle the **Mini-map** overlay on/off.
+- Edit the crosshair, halo-limit, and Dubins path-planning values live (see [Runtime Settings](#runtime-settings)) without rebuilding the app.
+
+Changes take effect immediately and persist across reloads; a **Reset to Defaults** button restores the halo/crosshair/Dubins values from `src/config.js` (Units and Mini-map visibility are separate simple toggles, not covered by this reset).
 
 ### Mini-map
-A draggable map overlay shows the flight lines and current position. Toggle it from the menu.
+A draggable map overlay shows the flight lines and current position. Toggle it from **⚙ Settings**.
 
 ### Full-screen map
 Tap the map icon next to the record button (it becomes a compass icon while the map is shown) to switch the instrument area to a full-screen OpenStreetMap view rendered with MapLibre GL. The top menu bar and the distance readouts stay visible.
 
-- Every flight line in the current section is drawn and labeled with its sequence number.
-- The selected line is highlighted (magenta with a dark halo) with green/red start/end markers; other lines are shown in cyan.
-- Tap any line (or its label) on the map to select it — same effect as picking it from the Line Selector dropdown.
+- Every flight line from **every section** in the loaded file is drawn and labeled `section-seq` (e.g. `1-2`, `3-1`), not just the currently selected section.
+- The selected line is highlighted (magenta with a dark halo) with green/red start/end markers; other active lines are shown in cyan.
+- **Completed lines are shown in grey** and can't be tapped/selected on the map — they become selectable again (and turn back to cyan) once restored from the Line Selector's **Restore Completed** dropdown.
+- Tap any active line (or its label) on the map to select it — same effect as picking it from the Line Selector dropdown. Selecting a line from a different section also switches the active **Select Section** dropdown to match.
 - The current aircraft position and flown track are shown.
-- An **Auto Zoom** checkbox (top-left of the map) controls whether the view auto-fits: to the selected line, start/end + aircraft position (padded 20%) when a line is picked, or to all lines in the current section when none is picked. Uncheck it to pan/zoom freely without the view snapping back.
+- An **Auto Zoom** checkbox (top-left of the map) controls whether the view auto-fits: to the selected line, start/end + aircraft position (padded 20%) when a line is picked, or to all lines across all sections when none is picked. Uncheck it to pan/zoom freely without the view snapping back — the last manual extents are remembered and restored when you switch back from the HUD view.
 - Tap the compass icon to switch back to the HUD view.
 
 ### Dubins path planning
@@ -233,24 +239,28 @@ All tuneable parameters are in `src/config.js`. Edit this file before touching a
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `completionThreshold` | `98` | % of line length required to count as a successful pass |
+| `completionThreshold` | `90` | % of line length required to count as a successful pass |
 | `kmlFilePath` | `./lines.kml` | Default KML loaded from `public/` |
-| `bundledKmlDir` | `./kml/` | Folder of bundled sample KML files listed under **Sample KMLs**; must contain a `manifest.json` (auto-generated by the Vite kml-manifest plugin) |
+| `bundledKmlDir` | `./kml/` | Folder of bundled sample KML/TXT files listed under **Missions**; must contain a `manifest.json` (auto-generated by the Vite kml-manifest plugin) |
 | `geoidUndulation` | `43.1` | Geoid height above ellipsoid for the survey area (metres). KML MSL altitudes are converted to ellipsoidal by adding this value before comparing with GPS altitude. Hungary ≈ 43–46 m. Not applied to TXT files (already ellipsoidal). |
 | `summaryAutoCloseSeconds` | `10` | Seconds before the Flight Summary dialog auto-dismisses |
 | `notificationDurationSeconds` | `3` | Seconds a toast notification stays visible |
 | `summaryDialogTimeoutMs` | `10000` | Same as `summaryAutoCloseSeconds`, in milliseconds |
-| `simulation.speedKnots` | `10` | Emulator airspeed |
-| `simulation.preStartDistanceFactor` | `0.1` | Fraction of the line length the simulator starts before the actual line start |
+| `simulation.speedKnots` | `60` | Emulator airspeed |
+| `simulation.preStartDistanceFactor` | `0.1` | Fraction of the line length the simulator starts before the start point, and continues past the end point |
 | `simulation.jitter.*` | — | Random noise added to simulated GPS position, altitude, and heading |
+| `qualitySegmentLength` | `10` | Length (m) of each colored chunk when rendering the flown track's quality on the map |
 | `crosshair.maxCrossTrack` | `500` | Cross-track distance (m) at which the HUD crosshair reaches maximum screen offset |
 | `crosshair.maxAltDiff` | `200` | Vertical distance (m) at which the HUD crosshair reaches maximum screen offset |
 | `limits.green` | `2` | Cross-track green threshold (m) |
-| `limits.yellow` | `4` | Cross-track yellow threshold (m) |
+| `limits.yellow` | `4` | Cross-track yellow threshold (m). Above → red |
 | `limits.vertical_green` | `2` | Vertical green threshold (m) |
-| `limits.vertical_yellow` | `4` | Vertical yellow threshold (m) |
+| `limits.vertical_yellow` | `4` | Vertical yellow threshold (m). Above → red |
 | `limits.heading_green` | `5` | Heading threshold (degrees) for auto-start |
+| `limits.heading_yellow` | `10` | Heading yellow threshold (degrees). Above → red |
 | `limits.start_radius` | `10` | Max distance from line endpoint (m) to allow auto-start |
+| `limits.speed_green` | `50` | Below this speed (knots) the Speed readout is green |
+| `limits.speed_yellow` | `70` | Below this speed (knots) the Speed readout is yellow; above it, red |
 | `dubins.minRadius` | `300` | Minimum turn radius (m) for the planned Dubins path |
 | `dubins.approachDistance` | `500` | Distance (m) before the line start where heading must already be aligned |
 | `dubins.updateIntervalSeconds` | `5` | Minimum seconds between Dubins path recomputes |

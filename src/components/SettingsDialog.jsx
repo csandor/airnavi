@@ -44,7 +44,7 @@ const toFormStrings = (settings) => Object.fromEntries(
     ])
 );
 
-const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUnits }) => {
+const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUnits, showMiniMap, onToggleMiniMap }) => {
     const [form, setForm] = useState(() => toFormStrings(settings));
 
     const handleChange = (groupKey, fieldKey, rawValue) => {
@@ -107,6 +107,24 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
                     }}
                 >
                     {units === 'metric' ? 'Metric' : 'Imperial'}
+                </button>
+            </div>
+
+            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
+                    MiniMap
+                </h3>
+                <button
+                    className="btn-primary"
+                    onClick={onToggleMiniMap}
+                    style={{
+                        width: '100%',
+                        padding: 'var(--spacing-sm)',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                >
+                    {showMiniMap ? 'Shown' : 'Hidden'}
                 </button>
             </div>
 

@@ -250,10 +250,22 @@ function App() {
         reader.readAsText(file);
     };
 
-    const clearCustomKml = () => {
-        localStorage.removeItem('customKml');
-        localStorage.removeItem('customFileName');
-        window.location.reload();
+    // Resets flight progress on the currently loaded mission (completed lines, flight
+    // logs, in-progress recording) without unloading the mission itself — as if it had
+    // just been loaded for the first time.
+    const resetMission = () => {
+        if (simulating) {
+            gpsEmulator.stopSimulation();
+            setSimulating(false);
+        }
+        setCurrentLine(null);
+        resetFlightState();
+        flightLogger.clearHistory();
+        setCompletedLines(new Set());
+        setCurrentSection(sections.length > 0 ? sections[0] : null);
+        setShowSummary(false);
+        setLastSession(null);
+        showToast("Mission Reset", "success");
     };
 
     useEffect(() => {
@@ -342,6 +354,9 @@ function App() {
         }
 
         setCurrentLine(line);
+        if (line.section !== currentSection) {
+            setCurrentSection(line.section);
+        }
         resetFlightState();
 
         // Force an immediate Dubins replan for the newly selected line
@@ -702,14 +717,10 @@ function App() {
                     onDownloadCSV={() => flightLogger.downloadCSV()}
                     onDownloadKMZ={() => downloadKMZ(flightLogger.history)}
                     onKmlImport={handleKmlImport}
-                    onReset={clearCustomKml}
+                    onResetMission={resetMission}
                     onOpenSettings={() => setShowSettings(true)}
-                    hasCustomKml={!!localStorage.getItem('customKml')}
                     bundledKmlFiles={bundledKmlFiles}
                     onBundledKmlSelect={handleBundledKmlSelect}
-                    // MiniMap Props
-                    showMiniMap={showMiniMap}
-                    onToggleMiniMap={toggleMiniMap}
                     // Map View Props
                     mapMaximized={mapMaximized}
                     onToggleMapMaximized={() => setMapMaximized(prev => !prev)}
@@ -735,6 +746,8 @@ function App() {
                     onClose={() => setShowSettings(false)}
                     units={units}
                     onToggleUnits={() => setUnits(u => u === 'metric' ? 'imperial' : 'metric')}
+                    showMiniMap={showMiniMap}
+                    onToggleMiniMap={toggleMiniMap}
                 />
             )}
 
@@ -749,7 +762,7 @@ function App() {
                     <>
                         <Suspense fallback={null}>
                             <FullMap
-                                lines={sectionLines}
+                                lines={lines}
                                 completedLines={completedLines}
                                 currentLine={currentLine}
                                 gpsData={gpsData}

@@ -22,9 +22,11 @@ const OSM_STYLE = {
     ]
 };
 
+const lineKey = (line) => `${line.section}-${line.seq}`;
+
 const lineToGeoJSON = (line) => ({
     type: 'Feature',
-    properties: { seq: line.seq },
+    properties: { key: lineKey(line), seq: line.seq, section: line.section },
     geometry: {
         type: 'LineString',
         coordinates: [[line.start.lon, line.start.lat], [line.end.lon, line.end.lat]]
@@ -33,7 +35,7 @@ const lineToGeoJSON = (line) => ({
 
 const lineToLabelGeoJSON = (line, completed = false) => ({
     type: 'Feature',
-    properties: { seq: line.seq, label: String(line.seq), completed },
+    properties: { key: lineKey(line), seq: line.seq, section: line.section, label: lineKey(line), completed },
     geometry: {
         type: 'Point',
         coordinates: [(line.start.lon + line.end.lon) / 2, (line.start.lat + line.end.lat) / 2]
@@ -208,9 +210,9 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
         const handleClick = (e) => {
             const features = map.queryRenderedFeatures(e.point, { layers: layerIds });
             if (!features.length) return;
-            const seq = features[0].properties.seq;
+            const { seq, section } = features[0].properties;
             if (completedLines && completedLines.has(seq)) return;
-            const line = (lines || []).find(l => l.seq === seq);
+            const line = (lines || []).find(l => l.seq === seq && l.section === section);
             if (line) onLineSelect(line);
         };
 
@@ -279,7 +281,7 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
         const start = direction === 'normal' ? currentLine.start : currentLine.end;
         const end = direction === 'normal' ? currentLine.end : currentLine.start;
 
-        map.getSource('current-line').setData({ type: 'FeatureCollection', features: [lineToGeoJSON({ start, end, seq: currentLine.seq })] });
+        map.getSource('current-line').setData({ type: 'FeatureCollection', features: [lineToGeoJSON({ start, end, seq: currentLine.seq, section: currentLine.section })] });
 
         map.getSource('endpoints').setData({
             type: 'FeatureCollection',

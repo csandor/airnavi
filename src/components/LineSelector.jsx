@@ -23,14 +23,10 @@ const LineSelector = ({
     onDownloadCSV,
     onDownloadKMZ,
     onKmlImport,
-    onReset,
+    onResetMission,
     onOpenSettings,
-    hasCustomKml,
     bundledKmlFiles,
     onBundledKmlSelect,
-    // MiniMap Props
-    showMiniMap,
-    onToggleMiniMap,
     // Map View Props
     mapMaximized,
     onToggleMapMaximized,
@@ -274,13 +270,10 @@ const LineSelector = ({
                     onDownloadCSV={onDownloadCSV}
                     onDownloadKMZ={onDownloadKMZ}
                     onKmlImport={onKmlImport}
-                    onReset={onReset}
+                    onResetMission={onResetMission}
                     onOpenSettings={onOpenSettings}
-                    hasCustomKml={hasCustomKml}
                     bundledKmlFiles={bundledKmlFiles}
                     onBundledKmlSelect={onBundledKmlSelect}
-                    showMiniMap={showMiniMap}
-                    onToggleMiniMap={onToggleMiniMap}
                 />
             </div>
             </div>

@@ -6,12 +6,9 @@ const HamburgerMenu = ({
     onDownloadCSV,
     onDownloadKMZ,
     onKmlImport,
-    onReset,
-    hasCustomKml,
+    onResetMission,
     bundledKmlFiles = [],
     onBundledKmlSelect,
-    showMiniMap,
-    onToggleMiniMap,
     onOpenSettings
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -118,7 +115,7 @@ const HamburgerMenu = ({
                         <div style={{ position: 'relative' }}>
                             <MenuButton
                                 onClick={() => setShowKmlSubmenu(prev => !prev)}
-                                label={`🗂 Sample Missions ${showKmlSubmenu ? '▾' : '▸'}`}
+                                label={`🗂 Missions ${showKmlSubmenu ? '▾' : '▸'}`}
                             />
                             {showKmlSubmenu && (
                                 <div style={{
@@ -142,16 +139,9 @@ const HamburgerMenu = ({
                     )}
 
                     <MenuButton
-                        onClick={() => handleAction(onToggleMiniMap)}
-                        label={showMiniMap ? '✓ MiniMap' : 'MiniMap'}
+                        onClick={() => handleAction(onResetMission)}
+                        label="🔄 Reset Mission"
                     />
-
-                    {hasCustomKml && (
-                        <MenuButton
-                            onClick={() => handleAction(onReset)}
-                            label="🔄 Reset KML"
-                        />
-                    )}
                 </div>
             )}
         </div>
