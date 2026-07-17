@@ -44,7 +44,7 @@ const toFormStrings = (settings) => Object.fromEntries(
     ])
 );
 
-const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUnits, showMiniMap, onToggleMiniMap }) => {
+const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUnits, showMiniMap, onToggleMiniMap, showLineGauge, onToggleLineGauge }) => {
     const [form, setForm] = useState(() => toFormStrings(settings));
 
     const handleChange = (groupKey, fieldKey, rawValue) => {
@@ -125,6 +125,24 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
                     }}
                 >
                     {showMiniMap ? 'Shown' : 'Hidden'}
+                </button>
+            </div>
+
+            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
+                    Line Gauge
+                </h3>
+                <button
+                    className="btn-primary"
+                    onClick={onToggleLineGauge}
+                    style={{
+                        width: '100%',
+                        padding: 'var(--spacing-sm)',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                >
+                    {showLineGauge ? 'Shown' : 'Hidden'}
                 </button>
             </div>
 

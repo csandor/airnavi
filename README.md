@@ -150,12 +150,16 @@ Menu → **Simulate Flight** runs a virtual GPS along the currently selected lin
 Menu → **⚙ Settings** opens a dialog to:
 - Toggle **Units** between metric (m, km/h) and imperial (ft, knots).
 - Toggle the **Mini-map** overlay on/off.
+- Toggle the **Line Gauge** overlay on/off.
 - Edit the crosshair, halo-limit, and Dubins path-planning values live (see [Runtime Settings](#runtime-settings)) without rebuilding the app.
 
-Changes take effect immediately and persist across reloads; a **Reset to Defaults** button restores the halo/crosshair/Dubins values from `src/config.js` (Units and Mini-map visibility are separate simple toggles, not covered by this reset).
+Changes take effect immediately and persist across reloads; a **Reset to Defaults** button restores the halo/crosshair/Dubins values from `src/config.js` (Units, Mini-map, and Line Gauge visibility are separate simple toggles, not covered by this reset).
 
 ### Mini-map
 A draggable map overlay shows the flight lines and current position. Toggle it from **⚙ Settings**.
+
+### Line Gauge
+A draggable, closable vertical bar shown on the HUD screen (not the full-screen map) that symbolizes the selected flight line. Its height matches the HUD compass/halo instrument diameter and scales with it. Once recording starts it fills from the bottom as the aircraft progresses along the line, colored per-segment by the same tracking quality (green/yellow/red) used for the flown-track coloring on the maps. Toggle it from **⚙ Settings**.
 
 ### Full-screen map
 Tap the map icon next to the record button (it becomes a compass icon while the map is shown) to switch the instrument area to a full-screen OpenStreetMap view rendered with MapLibre GL. The top menu bar and the distance readouts stay visible.

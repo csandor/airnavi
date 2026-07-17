@@ -11,6 +11,7 @@ import LineSelector from './components/LineSelector'
 import HUD from './components/HUD'
 import VisualNav from './components/VisualNav'
 import MiniMap from './components/MiniMap'
+import LineGauge from './components/LineGauge'
 const FullMap = lazy(() => import('./components/FullMap'))
 import DistanceDisplay from './components/DistanceDisplay'
 import SummaryDialog from './components/SummaryDialog'
@@ -89,6 +90,12 @@ function App() {
     const [autoZoom, setAutoZoom] = useState(true);
     const lastMapBounds = useRef(null); // Remembers FullMap extents across HUD<->Map switches while auto zoom is off
 
+    // Line Gauge dragging state
+    const [showLineGauge, setShowLineGauge] = useState(true);
+    const [lineGaugePos, setLineGaugePos] = useState({ bottom: 20, left: 20 });
+    const isDraggingGauge = useRef(false);
+    const dragStartGauge = useRef({ x: 0, y: 0 });
+
     // Dubins path planning mode
     const [planningMode, setPlanningMode] = useState(false);
     const [dubinsPath, setDubinsPath] = useState(null);
@@ -100,6 +107,10 @@ function App() {
 
     const toggleMiniMap = () => {
         setShowMiniMap(prev => !prev);
+    };
+
+    const toggleLineGauge = () => {
+        setShowLineGauge(prev => !prev);
     };
 
     const toggleAutoZoom = () => {
@@ -337,6 +348,54 @@ function App() {
         };
     }, []);
 
+    // Global mouse and touch handlers for Line Gauge dragging
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (isDraggingGauge.current) {
+                const deltaX = e.clientX - dragStartGauge.current.x;
+                const deltaY = dragStartGauge.current.y - e.clientY;
+
+                setLineGaugePos(prev => ({
+                    left: prev.left + deltaX,
+                    bottom: prev.bottom + deltaY
+                }));
+
+                dragStartGauge.current = { x: e.clientX, y: e.clientY };
+            }
+        };
+
+        const handleTouchMove = (e) => {
+            if (isDraggingGauge.current && e.touches.length > 0) {
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - dragStartGauge.current.x;
+                const deltaY = dragStartGauge.current.y - touch.clientY;
+
+                setLineGaugePos(prev => ({
+                    left: prev.left + deltaX,
+                    bottom: prev.bottom + deltaY
+                }));
+
+                dragStartGauge.current = { x: touch.clientX, y: touch.clientY };
+                e.preventDefault();
+            }
+        };
+
+        const handleMouseUp = () => {
+            isDraggingGauge.current = false;
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleMouseUp);
+        };
+    }, []);
 
     const resetFlightState = () => {
         setFlightStatus('idle');
@@ -748,6 +807,8 @@ function App() {
                     onToggleUnits={() => setUnits(u => u === 'metric' ? 'imperial' : 'metric')}
                     showMiniMap={showMiniMap}
                     onToggleMiniMap={toggleMiniMap}
+                    showLineGauge={showLineGauge}
+                    onToggleLineGauge={toggleLineGauge}
                 />
             )}
 
@@ -846,6 +907,46 @@ function App() {
                                     gpsData={gpsData}
                                     direction={direction}
                                     onClose={toggleMiniMap}
+                                    flightStatus={flightStatus}
+                                    chunkQuality={Object.fromEntries(chunkQuality.current)}
+                                    qualitySegmentLength={config.qualitySegmentLength}
+                                />
+                            </div>
+                        )}
+
+                        {/* Line Gauge Overlay */}
+                        {showLineGauge && currentLine && (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    bottom: `${lineGaugePos.bottom}px`,
+                                    left: `${lineGaugePos.left}px`,
+                                    width: '40px',
+                                    height: `${hudRadius * 2}px`,
+                                    zIndex: 20,
+                                    cursor: isDraggingGauge.current ? 'grabbing' : 'grab',
+                                    userSelect: 'none',
+                                    touchAction: 'none'
+                                }}
+                                onMouseDown={(e) => {
+                                    isDraggingGauge.current = true;
+                                    dragStartGauge.current = { x: e.clientX, y: e.clientY };
+                                    e.preventDefault();
+                                }}
+                                onTouchStart={(e) => {
+                                    if (e.touches.length > 0) {
+                                        isDraggingGauge.current = true;
+                                        const touch = e.touches[0];
+                                        dragStartGauge.current = { x: touch.clientX, y: touch.clientY };
+                                        e.preventDefault();
+                                    }
+                                }}
+                            >
+                                <LineGauge
+                                    currentLine={currentLine}
+                                    direction={direction}
+                                    gpsData={gpsData}
+                                    onClose={toggleLineGauge}
                                     flightStatus={flightStatus}
                                     chunkQuality={Object.fromEntries(chunkQuality.current)}
                                     qualitySegmentLength={config.qualitySegmentLength}
