@@ -234,14 +234,22 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
         });
     }, [loaded, lines, completedLines]);
 
-    // Tap-to-select: click a line (or its label) to select it — completed lines are not selectable
+    // Tap-to-select: click a line (or its label) to select it — completed lines are not selectable.
+    // Queries a small box around the tap point rather than the exact pixel, since the rendered
+    // lines are only a few px wide and hard to hit precisely on a touchscreen.
     useEffect(() => {
         if (!loaded || !mapRef.current || !onLineSelect) return;
         const map = mapRef.current;
         const layerIds = ['all-lines-layer', 'line-labels-layer', 'current-line-layer'];
+        const HIT_RADIUS = 12; // px
+
+        const hitBox = (point) => [
+            [point.x - HIT_RADIUS, point.y - HIT_RADIUS],
+            [point.x + HIT_RADIUS, point.y + HIT_RADIUS]
+        ];
 
         const handleClick = (e) => {
-            const features = map.queryRenderedFeatures(e.point, { layers: layerIds });
+            const features = map.queryRenderedFeatures(hitBox(e.point), { layers: layerIds });
             if (!features.length) return;
             const { seq, section } = features[0].properties;
             if (completedLines && completedLines.has(seq)) return;
@@ -250,7 +258,7 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
         };
 
         const handleMove = (e) => {
-            const features = map.queryRenderedFeatures(e.point, { layers: layerIds });
+            const features = map.queryRenderedFeatures(hitBox(e.point), { layers: layerIds });
             const selectable = features.length && !(completedLines && completedLines.has(features[0].properties.seq));
             map.getCanvas().style.cursor = selectable ? 'pointer' : '';
         };
