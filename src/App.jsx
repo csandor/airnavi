@@ -100,6 +100,7 @@ function App() {
     const [planningMode, setPlanningMode] = useState(false);
     const [dubinsPath, setDubinsPath] = useState(null);
     const lastDubinsUpdate = useRef(0);
+    const resumePlanningOnNextLine = useRef(false);
 
     const showToast = (message, type = 'info') => {
         setNotification({ message, type });
@@ -118,6 +119,7 @@ function App() {
     };
 
     const togglePlanningMode = () => {
+        resumePlanningOnNextLine.current = false;
         setPlanningMode(prev => {
             const next = !prev;
             if (!next) {
@@ -147,9 +149,11 @@ function App() {
         }
     }, [mapMaximized, planningMode]);
 
-    // Planning mode is unavailable while recording — stop it as soon as flight starts
+    // Planning mode is unavailable while recording — stop it as soon as flight starts,
+    // remembering it was active so it can resume automatically on the next line
     useEffect(() => {
         if (flightStatus === 'flying' && planningMode) {
+            resumePlanningOnNextLine.current = true;
             setPlanningMode(false);
             setDubinsPath(null);
             lastDubinsUpdate.current = 0;
@@ -421,7 +425,13 @@ function App() {
         // Force an immediate Dubins replan for the newly selected line
         if (planningMode) {
             lastDubinsUpdate.current = 0;
+        } else if (resumePlanningOnNextLine.current) {
+            // Planning was switched off automatically when recording started —
+            // resume it for the newly selected line without requiring another button press
+            setPlanningMode(true);
+            lastDubinsUpdate.current = 0;
         }
+        resumePlanningOnNextLine.current = false;
     }
 
     const toggleDirection = () => {
