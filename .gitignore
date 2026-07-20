@@ -11,6 +11,11 @@ lerna-debug.log*
 test-kml/*
 public/kml/*
 
+# OSM offline basemap package (large binaries; style.json is tracked at src/osm/liberty-style.json,
+# `npm run build:osm-package` assembles it with these into public/osm/osm.zip, see config.js)
+public/osm/osm.zip
+osm-assets/
+
 # node_modules
 node_modules
 dist

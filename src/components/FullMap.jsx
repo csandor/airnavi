@@ -1,25 +1,41 @@
 import React, { useRef, useEffect, useState } from 'react';
 import maplibregl from 'maplibre-gl';
+import { Protocol, PMTiles, FileSource } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { calculateAlongTrackDistance } from '../utils/GeoUtils';
 import { QUALITY_COLORS } from '../utils/QualityUtils';
+import config from '../config';
+import { readOsmAsset, ensureOsmAssets } from '../utils/OsmAssets';
 
 const DEFAULT_PATH_COLOR = 'rgba(255, 200, 0, 0.6)';
 
-const OSM_STYLE = {
-    version: 8,
-    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
-    sources: {
-        osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap contributors'
-        }
-    },
-    layers: [
-        { id: 'osm', type: 'raster', source: 'osm' }
-    ]
+const pmtilesProtocol = new Protocol();
+maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
+
+// Serves sprite/glyph assets unpacked into OPFS (see src/utils/OsmAssets.js) to MapLibre.
+// For type: 'json' requests (the sprite JSON), MapLibre expects `data` to already be the
+// parsed object rather than raw bytes — unlike arrayBuffer/image requests, it does not parse
+// the response itself for custom protocols the way it does for plain fetch().
+maplibregl.addProtocol('osm-asset', async (params) => {
+    const relativePath = decodeURIComponent(params.url.replace('osm-asset://', ''));
+    const file = await readOsmAsset(relativePath);
+    if (params.type === 'json') return { data: JSON.parse(await file.text()) };
+    return { data: await file.arrayBuffer() };
+});
+
+// Loads the MapLibre style unpacked into OPFS and points its vector source at a PMTiles
+// instance backed by the local OPFS file (random-access reads, no network, no full-file load).
+const loadOsmStyle = async ({ onProgress } = {}) => {
+    await ensureOsmAssets({ onProgress });
+
+    const styleFile = await readOsmAsset(config.osmStyleFileName);
+    const style = JSON.parse(await styleFile.text());
+
+    const pmtilesFile = await readOsmAsset(config.osmPmtilesFileName);
+    pmtilesProtocol.add(new PMTiles(new FileSource(pmtilesFile)));
+    style.sources.openmaptiles.url = `pmtiles://${config.osmPmtilesFileName}`;
+
+    return style;
 };
 
 const lineKey = (line) => `${line.section}-${line.seq}`;
@@ -46,132 +62,149 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const [loaded, setLoaded] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(null);
+    const [downloadError, setDownloadError] = useState(null);
     const autoZoomRef = useRef(autoZoom);
     useEffect(() => { autoZoomRef.current = autoZoom; }, [autoZoom]);
 
     // Init map once
     useEffect(() => {
-        const map = new maplibregl.Map({
-            container: containerRef.current,
-            style: OSM_STYLE,
-            attributionControl: { compact: true }
-        });
-        mapRef.current = map;
+        let cancelled = false;
+        let map = null;
+        let cleanup = () => {};
 
-        map.on('load', () => {
-            if (initialBounds) {
-                map.fitBounds(initialBounds, { animate: false });
-            }
-            map.addSource('all-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'all-lines-layer',
-                type: 'line',
-                source: 'all-lines',
-                paint: { 'line-color': '#00e5ff', 'line-width': 4, 'line-opacity': 0.9 }
+        loadOsmStyle({ onProgress: (p) => !cancelled && setDownloadProgress(p) }).then(style => {
+            if (cancelled) return;
+            setDownloadProgress(null);
+            map = new maplibregl.Map({
+                container: containerRef.current,
+                style,
+                attributionControl: { compact: true }
             });
+            mapRef.current = map;
 
-            map.addSource('completed-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'completed-lines-layer',
-                type: 'line',
-                source: 'completed-lines',
-                paint: { 'line-color': '#888888', 'line-width': 4, 'line-opacity': 0.7 }
-            });
-
-            map.addSource('line-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'line-labels-layer',
-                type: 'symbol',
-                source: 'line-labels',
-                layout: {
-                    'text-field': ['get', 'label'],
-                    'text-size': 16,
-                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                    'text-allow-overlap': true
-                },
-                paint: {
-                    'text-color': ['case', ['get', 'completed'], '#aaaaaa', '#ffffff'],
-                    'text-halo-color': '#000000',
-                    'text-halo-width': 2
+            map.on('load', () => {
+                if (initialBounds) {
+                    map.fitBounds(initialBounds, { animate: false });
                 }
+                map.addSource('all-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'all-lines-layer',
+                    type: 'line',
+                    source: 'all-lines',
+                    paint: { 'line-color': '#00e5ff', 'line-width': 4, 'line-opacity': 0.9 }
+                });
+
+                map.addSource('completed-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'completed-lines-layer',
+                    type: 'line',
+                    source: 'completed-lines',
+                    paint: { 'line-color': '#888888', 'line-width': 4, 'line-opacity': 0.7 }
+                });
+
+                map.addSource('line-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'line-labels-layer',
+                    type: 'symbol',
+                    source: 'line-labels',
+                    layout: {
+                        'text-field': ['get', 'label'],
+                        'text-size': 16,
+                        'text-font': ['Noto Sans Bold'],
+                        'text-allow-overlap': true
+                    },
+                    paint: {
+                        'text-color': ['case', ['get', 'completed'], '#aaaaaa', '#ffffff'],
+                        'text-halo-color': '#000000',
+                        'text-halo-width': 2
+                    }
+                });
+
+                map.addSource('current-line', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'current-line-halo-layer',
+                    type: 'line',
+                    source: 'current-line',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#000000', 'line-width': 10, 'line-opacity': 0.5 }
+                });
+                map.addLayer({
+                    id: 'current-line-layer',
+                    type: 'line',
+                    source: 'current-line',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#ff00c8', 'line-width': 6 }
+                });
+
+                map.addSource('endpoints', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'endpoints-layer',
+                    type: 'circle',
+                    source: 'endpoints',
+                    paint: {
+                        'circle-radius': 6,
+                        'circle-color': ['get', 'color'],
+                        'circle-stroke-color': '#000',
+                        'circle-stroke-width': 1
+                    }
+                });
+
+                map.addSource('path', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'path-layer',
+                    type: 'line',
+                    source: 'path',
+                    paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_PATH_COLOR], 'line-width': 3 }
+                });
+
+                map.addSource('aircraft', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'aircraft-layer',
+                    type: 'circle',
+                    source: 'aircraft',
+                    paint: {
+                        'circle-radius': 7,
+                        'circle-color': '#00ccff',
+                        'circle-stroke-color': '#000',
+                        'circle-stroke-width': 1
+                    }
+                });
+
+                map.addSource('dubins-path', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                map.addLayer({
+                    id: 'dubins-path-halo-layer',
+                    type: 'line',
+                    source: 'dubins-path',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#000000', 'line-width': 9, 'line-opacity': 0.5 }
+                });
+                map.addLayer({
+                    id: 'dubins-path-layer',
+                    type: 'line',
+                    source: 'dubins-path',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#ffaa00', 'line-width': 5, 'line-dasharray': [3, 3] }
+                });
+
+                setLoaded(true);
             });
 
-            map.addSource('current-line', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'current-line-halo-layer',
-                type: 'line',
-                source: 'current-line',
-                layout: { 'line-cap': 'round', 'line-join': 'round' },
-                paint: { 'line-color': '#000000', 'line-width': 10, 'line-opacity': 0.5 }
-            });
-            map.addLayer({
-                id: 'current-line-layer',
-                type: 'line',
-                source: 'current-line',
-                layout: { 'line-cap': 'round', 'line-join': 'round' },
-                paint: { 'line-color': '#ff00c8', 'line-width': 6 }
-            });
-
-            map.addSource('endpoints', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'endpoints-layer',
-                type: 'circle',
-                source: 'endpoints',
-                paint: {
-                    'circle-radius': 6,
-                    'circle-color': ['get', 'color'],
-                    'circle-stroke-color': '#000',
-                    'circle-stroke-width': 1
+            cleanup = () => {
+                if (!autoZoomRef.current && onBoundsChange) {
+                    const b = map.getBounds();
+                    onBoundsChange([[b.getWest(), b.getSouth()], [b.getEast(), b.getNorth()]]);
                 }
-            });
-
-            map.addSource('path', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'path-layer',
-                type: 'line',
-                source: 'path',
-                paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_PATH_COLOR], 'line-width': 3 }
-            });
-
-            map.addSource('aircraft', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'aircraft-layer',
-                type: 'circle',
-                source: 'aircraft',
-                paint: {
-                    'circle-radius': 7,
-                    'circle-color': '#00ccff',
-                    'circle-stroke-color': '#000',
-                    'circle-stroke-width': 1
-                }
-            });
-
-            map.addSource('dubins-path', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({
-                id: 'dubins-path-halo-layer',
-                type: 'line',
-                source: 'dubins-path',
-                layout: { 'line-cap': 'round', 'line-join': 'round' },
-                paint: { 'line-color': '#000000', 'line-width': 9, 'line-opacity': 0.5 }
-            });
-            map.addLayer({
-                id: 'dubins-path-layer',
-                type: 'line',
-                source: 'dubins-path',
-                layout: { 'line-cap': 'round', 'line-join': 'round' },
-                paint: { 'line-color': '#ffaa00', 'line-width': 5, 'line-dasharray': [3, 3] }
-            });
-
-            setLoaded(true);
+                map.remove();
+                mapRef.current = null;
+            };
+        }).catch(err => {
+            if (!cancelled) setDownloadError(err.message || String(err));
         });
 
         return () => {
-            if (!autoZoomRef.current && onBoundsChange) {
-                const b = map.getBounds();
-                onBoundsChange([[b.getWest(), b.getSouth()], [b.getEast(), b.getNorth()]]);
-            }
-            map.remove();
-            mapRef.current = null;
+            cancelled = true;
+            cleanup();
         };
     }, []);
 
@@ -370,6 +403,35 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
     return (
         <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
             <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+            {(downloadProgress !== null || downloadError) && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 40,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        padding: '20px',
+                        textAlign: 'center',
+                        background: 'rgba(22, 27, 34, 0.92)',
+                        color: 'white'
+                    }}
+                >
+                    {downloadError ? (
+                        <div>Failed to load offline map data: {downloadError}</div>
+                    ) : (
+                        <>
+                            <div>Downloading offline map data… {Math.round(downloadProgress * 100)}%</div>
+                            <div style={{ width: '70%', maxWidth: '260px', height: '6px', background: 'rgba(255,255,255,0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.round(downloadProgress * 100)}%`, height: '100%', background: '#00e5ff' }} />
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
             <label
                 style={{
                     position: 'absolute',
