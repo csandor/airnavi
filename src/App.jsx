@@ -21,6 +21,18 @@ import Toast from './components/Toast'
 import config from './config'
 import './App.css'
 
+// Orders a section's lines per a custom row-order seq list (falling back to plain
+// seq order when rowOrder is null, or for any seq the list doesn't mention).
+const orderLinesByRowOrder = (sectionLines, rowOrder) => {
+    if (!rowOrder) return sectionLines;
+    const rank = new Map(rowOrder.map((seq, i) => [seq, i]));
+    return [...sectionLines].sort((a, b) => {
+        const ra = rank.has(a.seq) ? rank.get(a.seq) : rowOrder.length + a.seq;
+        const rb = rank.has(b.seq) ? rank.get(b.seq) : rowOrder.length + b.seq;
+        return ra - rb;
+    });
+};
+
 const applyGeoidUndulation = (lines) => {
     const u = config.geoidUndulation;
     if (!u) return lines;
@@ -34,11 +46,14 @@ const applyGeoidUndulation = (lines) => {
 // KML altitudes are MSL and need geoid undulation to become ellipsoidal;
 // TXT altitudes are already ellipsoidal. KML lines have no section concept,
 // so they're all tagged into a single implicit section.
+// Returns {lines, rowOrder} — rowOrder is only ever non-null for a single-section
+// TXT file that declares a custom row-order header comment (see TxtParser.js).
 const parseFlightFile = (filename, content) => {
     if (/\.txt$/i.test(filename)) {
         return parseTXT(content);
     }
-    return applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
+    const lines = applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
+    return { lines, rowOrder: null };
 };
 
 const loadRuntimeSettings = () => {
@@ -69,6 +84,7 @@ function App() {
     const [completedLines, setCompletedLines] = useState(new Set())
     const [lines, setLines] = useState([])
     const [missionFileName, setMissionFileName] = useState('lines.kml')
+    const [rowOrder, setRowOrder] = useState(null)
     const [currentLine, setCurrentLine] = useState(null)
     const [currentSection, setCurrentSection] = useState(null)
     const [direction, setDirection] = useState('normal')
@@ -189,8 +205,9 @@ function App() {
         if (savedKml) {
             const savedFileName = localStorage.getItem('customFileName') || 'custom.kml';
             try {
-                const parsedLines = parseFlightFile(savedFileName, savedKml);
+                const { lines: parsedLines, rowOrder: parsedRowOrder } = parseFlightFile(savedFileName, savedKml);
                 setLines(parsedLines);
+                setRowOrder(parsedRowOrder);
                 setMissionFileName(savedFileName);
                 showToast("Loaded Custom Flight File", "success");
                 return;
@@ -208,6 +225,7 @@ function App() {
             .then(text => {
                 const parsedLines = applyGeoidUndulation(parseKML(text)).map(l => ({ ...l, section: 1 }))
                 setLines(parsedLines)
+                setRowOrder(null)
                 setMissionFileName(config.kmlFilePath.split('/').pop())
             })
             .catch(err => console.error("Failed to load KML", err))
@@ -243,8 +261,9 @@ function App() {
         fetch(`${config.bundledKmlDir}${filename}`)
             .then(res => res.text())
             .then(content => {
-                const parsedLines = parseFlightFile(filename, content);
+                const { lines: parsedLines, rowOrder: parsedRowOrder } = parseFlightFile(filename, content);
                 setLines(parsedLines);
+                setRowOrder(parsedRowOrder);
                 setMissionFileName(filename);
                 localStorage.setItem('customKml', content);
                 localStorage.setItem('customFileName', filename);
@@ -267,8 +286,9 @@ function App() {
         reader.onload = (e) => {
             const content = e.target.result;
             try {
-                const parsedLines = parseFlightFile(file.name, content);
+                const { lines: parsedLines, rowOrder: parsedRowOrder } = parseFlightFile(file.name, content);
                 setLines(parsedLines);
+                setRowOrder(parsedRowOrder);
                 setMissionFileName(file.name);
                 localStorage.setItem('customKml', content);
                 localStorage.setItem('customFileName', file.name);
@@ -520,8 +540,27 @@ function App() {
 
     const advanceToNextLine = () => {
         if (!currentLine) return;
-        const nextSeq = currentLine.seq + 1;
-        const nextLine = lines.find(l => l.section === currentLine.section && l.seq >= nextSeq && !completedLines.has(`${l.section}-${l.seq}`));
+        const isAvailable = (l) => !completedLines.has(`${l.section}-${l.seq}`);
+        const currentSectionLines = lines.filter(l => l.section === currentLine.section);
+
+        let nextLine;
+        if (rowOrder) {
+            // Walk the custom order starting right after wherever currentLine sits in it,
+            // wrapping around once, and stop at the first still-available line.
+            const ordered = orderLinesByRowOrder(currentSectionLines, rowOrder);
+            const currentIndex = ordered.findIndex(l => l.seq === currentLine.seq);
+            for (let i = 1; i <= ordered.length; i++) {
+                const candidate = ordered[(currentIndex + i) % ordered.length];
+                if (candidate.seq !== currentLine.seq && isAvailable(candidate)) {
+                    nextLine = candidate;
+                    break;
+                }
+            }
+        } else {
+            const nextSeq = currentLine.seq + 1;
+            nextLine = lines.find(l => l.section === currentLine.section && l.seq >= nextSeq && isAvailable(l));
+        }
+
         if (nextLine) {
             handleLineSelect(nextLine);
             showToast(`Switched to Line ${nextLine.seq}`, "success");
@@ -778,7 +817,7 @@ function App() {
         renderHudData.targetHeading = lineBearing;
     }
 
-    const sectionLines = lines.filter(l => l.section === currentSection);
+    const sectionLines = orderLinesByRowOrder(lines.filter(l => l.section === currentSection), rowOrder);
     const availableLines = sectionLines.filter(l => !completedLines.has(`${l.section}-${l.seq}`));
 
     return (
