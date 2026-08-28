@@ -627,6 +627,19 @@ function App() {
             nextLine = lines.find(l => l.section === currentLine.section && l.seq >= nextSeq && isAvailable(l));
         }
 
+        if (!nextLine) {
+            // Section fully flown — jump to the first (row-order) line of the next section.
+            const sectionIndex = sections.indexOf(currentLine.section);
+            const nextSection = sections[sectionIndex + 1];
+            if (nextSection !== undefined) {
+                const nextSectionLines = orderLinesByRowOrder(
+                    lines.filter(l => l.section === nextSection),
+                    rowOrders[nextSection]
+                );
+                nextLine = nextSectionLines.find(isAvailable) || nextSectionLines[0];
+            }
+        }
+
         if (nextLine) {
             handleLineSelect(nextLine);
             showToast(`Switched to Line ${nextLine.seq}`, "success");
