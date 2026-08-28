@@ -45,7 +45,10 @@ const toFormStrings = (settings) => Object.fromEntries(
 );
 
 const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUnits, showMiniMap, onToggleMiniMap, showLineGauge, onToggleLineGauge }) => {
-    const [form, setForm] = useState(() => toFormStrings(settings));
+    const [form, setForm] = useState(() => ({
+        ...toFormStrings({ crosshair: settings.crosshair, limits: settings.limits, dubins: settings.dubins }),
+        summaryAutoCloseSeconds: String(settings.summaryAutoCloseSeconds),
+    }));
 
     const handleChange = (groupKey, fieldKey, rawValue) => {
         setForm(prev => ({
@@ -54,16 +57,22 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
         }));
     };
 
+    const handleTopLevelChange = (fieldKey, rawValue) => {
+        setForm(prev => ({ ...prev, [fieldKey]: rawValue }));
+    };
+
     const handleSave = () => {
         const parsed = Object.fromEntries(
-            Object.entries(form).map(([groupKey, group]) => [
+            FIELD_GROUPS.map(({ key: groupKey }) => [
                 groupKey,
-                Object.fromEntries(Object.entries(group).map(([fieldKey, rawValue]) => {
+                Object.fromEntries(Object.entries(form[groupKey]).map(([fieldKey, rawValue]) => {
                     const value = parseFloat(rawValue);
                     return [fieldKey, Number.isNaN(value) ? settings[groupKey][fieldKey] : value];
                 }))
             ])
         );
+        const summaryAutoCloseSeconds = parseFloat(form.summaryAutoCloseSeconds);
+        parsed.summaryAutoCloseSeconds = Number.isNaN(summaryAutoCloseSeconds) ? settings.summaryAutoCloseSeconds : summaryAutoCloseSeconds;
         onSave(parsed);
         onClose();
     };
@@ -174,6 +183,31 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
                     ))}
                 </div>
             ))}
+
+            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
+                    Flight Summary
+                </h3>
+                <div style={{ marginBottom: 'var(--spacing-sm)' }}>
+                    <label style={{ display: 'block', fontSize: '0.8em', marginBottom: '2px' }} title="Seconds before the flight summary dialog auto-accepts or auto-rejects">
+                        Auto-Close Delay (s)
+                    </label>
+                    <input
+                        type="number"
+                        value={form.summaryAutoCloseSeconds}
+                        onChange={(e) => handleTopLevelChange('summaryAutoCloseSeconds', e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: 'var(--spacing-sm)',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            background: 'rgba(0,0,0,0.3)',
+                            color: 'white',
+                            fontSize: '1em'
+                        }}
+                    />
+                </div>
+            </div>
 
             <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
                 <button

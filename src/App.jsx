@@ -41,7 +41,12 @@ const parseFlightFile = (filename, content) => {
 };
 
 const loadRuntimeSettings = () => {
-    const defaults = { crosshair: config.crosshair, limits: config.limits, dubins: config.dubins };
+    const defaults = {
+        crosshair: config.crosshair,
+        limits: config.limits,
+        dubins: config.dubins,
+        summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
+    };
     const saved = localStorage.getItem('runtimeSettings');
     if (!saved) return defaults;
     try {
@@ -50,6 +55,7 @@ const loadRuntimeSettings = () => {
             crosshair: { ...defaults.crosshair, ...parsed.crosshair },
             limits: { ...defaults.limits, ...parsed.limits },
             dubins: { ...defaults.dubins, ...parsed.dubins },
+            summaryAutoCloseSeconds: parsed.summaryAutoCloseSeconds ?? defaults.summaryAutoCloseSeconds,
         };
     } catch {
         return defaults;
@@ -137,7 +143,12 @@ function App() {
 
     const resetRuntimeSettings = () => {
         localStorage.removeItem('runtimeSettings');
-        setRuntimeSettings({ crosshair: config.crosshair, limits: config.limits, dubins: config.dubins });
+        setRuntimeSettings({
+            crosshair: config.crosshair,
+            limits: config.limits,
+            dubins: config.dubins,
+            summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
+        });
     };
 
     // Planning mode only applies to the big map — clear it if the HUD view is shown
@@ -804,6 +815,7 @@ function App() {
                     session={lastSession}
                     onKeep={handleKeep}
                     onReject={handleReject}
+                    autoCloseSeconds={runtimeSettings.summaryAutoCloseSeconds}
                 />
             )}
 

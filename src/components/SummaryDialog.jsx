@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import config from '../config';
 
-const SummaryDialog = ({ session, onKeep, onReject }) => {
-    const [timeLeft, setTimeLeft] = useState(config.summaryAutoCloseSeconds);
+const SummaryDialog = ({ session, onKeep, onReject, autoCloseSeconds = config.summaryAutoCloseSeconds }) => {
+    const [timeLeft, setTimeLeft] = useState(autoCloseSeconds);
     const completion = parseFloat(session.completionPct);
     const isSuccess = completion >= config.completionThreshold;
     const defaultAction = isSuccess ? 'Keep' : 'Reject';
@@ -28,7 +28,7 @@ const SummaryDialog = ({ session, onKeep, onReject }) => {
 
         return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isSuccess]); // intentionally omit callbacks — stabilised via refs above
+    }, [isSuccess, autoCloseSeconds]); // intentionally omit callbacks — stabilised via refs above
 
     return (
         <div className="glass-panel" style={{
