@@ -65,6 +65,7 @@ const loadRuntimeSettings = () => {
 function App() {
     const [completedLines, setCompletedLines] = useState(new Set())
     const [lines, setLines] = useState([])
+    const [missionFileName, setMissionFileName] = useState('lines.kml')
     const [currentLine, setCurrentLine] = useState(null)
     const [currentSection, setCurrentSection] = useState(null)
     const [direction, setDirection] = useState('normal')
@@ -187,6 +188,7 @@ function App() {
             try {
                 const parsedLines = parseFlightFile(savedFileName, savedKml);
                 setLines(parsedLines);
+                setMissionFileName(savedFileName);
                 showToast("Loaded Custom Flight File", "success");
                 return;
             } catch (e) {
@@ -203,6 +205,7 @@ function App() {
             .then(text => {
                 const parsedLines = applyGeoidUndulation(parseKML(text)).map(l => ({ ...l, section: 1 }))
                 setLines(parsedLines)
+                setMissionFileName(config.kmlFilePath.split('/').pop())
             })
             .catch(err => console.error("Failed to load KML", err))
     }, [])
@@ -239,6 +242,7 @@ function App() {
             .then(content => {
                 const parsedLines = parseFlightFile(filename, content);
                 setLines(parsedLines);
+                setMissionFileName(filename);
                 localStorage.setItem('customKml', content);
                 localStorage.setItem('customFileName', filename);
                 setCurrentLine(null);
@@ -262,6 +266,7 @@ function App() {
             try {
                 const parsedLines = parseFlightFile(file.name, content);
                 setLines(parsedLines);
+                setMissionFileName(file.name);
                 localStorage.setItem('customKml', content);
                 localStorage.setItem('customFileName', file.name);
                 setCurrentLine(null);
@@ -493,7 +498,7 @@ function App() {
         setFlightStatus('idle'); // Stop "flying" status immediately
 
         // Log flight
-        flightLogger.endFlight(currentLine.seq, completionPct, direction);
+        flightLogger.endFlight(currentLine.seq, completionPct, direction, currentLine.section);
         const session = flightLogger.getLastSession();
         setLastSession(session);
         setShowSummary(true);
@@ -777,6 +782,7 @@ function App() {
             )}
             <div style={{ position: 'relative', zIndex: 90 }}>
                 <LineSelector
+                    missionFileName={missionFileName}
                     lines={availableLines}
                     currentLine={currentLine}
                     onLineSelect={handleLineSelect}
@@ -794,8 +800,8 @@ function App() {
                     // Menu Props
                     simulating={simulating}
                     onToggleSimulation={toggleSimulation}
-                    onDownloadCSV={() => flightLogger.downloadCSV()}
-                    onDownloadKMZ={() => downloadKMZ(flightLogger.history)}
+                    onDownloadCSV={() => flightLogger.downloadCSV(missionFileName)}
+                    onDownloadKMZ={() => downloadKMZ(flightLogger.history, missionFileName)}
                     onKmlImport={handleKmlImport}
                     onResetMission={resetMission}
                     onOpenSettings={() => setShowSettings(true)}

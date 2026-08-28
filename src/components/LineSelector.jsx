@@ -3,6 +3,7 @@ import HamburgerMenu from './HamburgerMenu';
 import { version } from '../../package.json';
 
 const LineSelector = ({
+    missionFileName,
     lines,
     currentLine,
     onLineSelect,
@@ -35,11 +36,12 @@ const LineSelector = ({
     onTogglePlanningMode
 }) => {
     const isFlying = flightStatus === 'flying';
+    const missionName = missionFileName ? missionFileName.replace(/\.[^./\\]+$/, '') : null;
 
     return (
         <>
             <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'hsl(var(--color-text-secondary))', marginBottom: 'var(--spacing-xs)' }}>
-                AirNavi v{version}
+                AirNavi v{version}{missionName ? ` - ${missionName}` : ''}
             </div>
 
             <div className="glass-panel" style={{
