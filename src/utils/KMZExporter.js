@@ -1,5 +1,7 @@
 // Minimal ZIP (stored, no compression) + KMZ builder
 
+import { buildExportFileName } from './ExportFileName';
+
 function crc32(buf) {
     const table = (() => {
         const t = new Uint32Array(256);
@@ -101,7 +103,8 @@ function escapeXml(str) {
 
 export function buildKML(history) {
     const schemaFields = [
-        { name: 'LineID',      type: 'string' },
+        { name: 'Section',     type: 'string' },
+        { name: 'Line',        type: 'string' },
         { name: 'Date',        type: 'string' },
         { name: 'StartTime',   type: 'string' },
         { name: 'EndTime',     type: 'string' },
@@ -132,7 +135,8 @@ export function buildKML(history) {
     <name>${escapeXml(session.lineId)}</name>
     <ExtendedData>
       <SchemaData schemaUrl="#flightSchema">
-${sd('LineID', session.lineId)}
+${sd('Section', session.section)}
+${sd('Line', session.lineId)}
 ${sd('Date', session.date)}
 ${sd('StartTime', session.startTime)}
 ${sd('EndTime', session.endTime)}
@@ -166,7 +170,7 @@ ${placemarks}
 </kml>`;
 }
 
-export function downloadKMZ(history) {
+export function downloadKMZ(history, missionFileName) {
     if (history.length === 0) {
         alert("No flight logs to download.");
         return;
@@ -178,10 +182,7 @@ export function downloadKMZ(history) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const now = new Date();
-    const date = now.toISOString().slice(0, 10);
-    const time = now.toTimeString().slice(0, 8).replace(/:/g, '-');
-    a.download = `flight_logs_${date}_${time}.kmz`;
+    a.download = `${buildExportFileName(missionFileName)}.kmz`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

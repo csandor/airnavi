@@ -1,3 +1,5 @@
+import { buildExportFileName } from './ExportFileName';
+
 export class FlightLogger {
     constructor() {
         this.history = [];
@@ -46,12 +48,13 @@ export class FlightLogger {
         }
     }
 
-    endFlight(lineId, completionPct = 100, direction = 'normal') {
+    endFlight(lineId, completionPct = 100, direction = 'normal', section = null) {
         this.endTime = new Date();
 
         // Store session
         this.history.push({
             lineId: lineId,
+            section: section,
             date: this.startTime ? this.startTime.toLocaleDateString() : 'N/A',
             startTime: this.startTime ? this.startTime.toLocaleTimeString() : 'N/A',
             endTime: this.endTime.toLocaleTimeString(),
@@ -78,14 +81,15 @@ export class FlightLogger {
         this.history = [];
     }
 
-    downloadCSV() {
+    downloadCSV(missionFileName) {
         if (this.history.length === 0) {
             alert("No flight logs to download.");
             return;
         }
 
-        const headers = ["Line ID", "Date", "Start Time", "End Time", "Duration (s)", "Direction", "Completion (%)", "Max X-Track (m)", "Max Alt Diff (m)", "Max Speed (km/h)", "Max Hdg Diff (deg)"];
+        const headers = ["Section", "Line", "Date", "Start Time", "End Time", "Duration (s)", "Direction", "Completion (%)", "Max X-Track (m)", "Max Alt Diff (m)", "Max Speed (km/h)", "Max Hdg Diff (deg)"];
         const rows = this.history.map(session => [
+            session.section,
             session.lineId,
             session.date,
             session.startTime,
@@ -108,7 +112,7 @@ export class FlightLogger {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `flight_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `${buildExportFileName(missionFileName)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
