@@ -6,6 +6,7 @@ import { classifyQuality, worseQuality } from './utils/QualityUtils'
 import { planDubinsPath } from './utils/DubinsUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { flightLogger } from './utils/FlightLogger'
+import { useWakeLock } from './hooks/useWakeLock'
 import { downloadKMZ } from './utils/KMZExporter'
 import LineSelector from './components/LineSelector'
 import HUD from './components/HUD'
@@ -63,6 +64,8 @@ const loadRuntimeSettings = () => {
 };
 
 function App() {
+    useWakeLock();
+
     const [completedLines, setCompletedLines] = useState(new Set())
     const [lines, setLines] = useState([])
     const [missionFileName, setMissionFileName] = useState('lines.kml')
