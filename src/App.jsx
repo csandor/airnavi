@@ -436,6 +436,16 @@ function App() {
         if (line.section !== currentSection) {
             setCurrentSection(line.section);
         }
+
+        // Auto-orient to whichever endpoint is closer, checked only at selection time.
+        if (gpsData && gpsData.lat !== 0) {
+            const distToStart = calculateDistance(gpsData.lat, gpsData.lon, line.start.lat, line.start.lon);
+            const distToEnd = calculateDistance(gpsData.lat, gpsData.lon, line.end.lat, line.end.lon);
+            setDirection(distToEnd < distToStart ? 'reverse' : 'normal');
+        } else {
+            setDirection('normal');
+        }
+
         resetFlightState();
 
         // Force an immediate Dubins replan for the newly selected line
