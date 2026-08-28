@@ -296,6 +296,30 @@ function App() {
 
     const handleBundledKmlSelect = (filename) => {
         if (!filename) return;
+
+        if (/\.zip$/i.test(filename)) {
+            fetch(`${config.bundledKmlDir}${filename}`)
+                .then(res => res.arrayBuffer())
+                .then(zipBuffer => {
+                    const { lines: parsedLines, rowOrders: parsedRowOrders } = parseZipMission(zipBuffer);
+                    setLines(parsedLines);
+                    setRowOrders(parsedRowOrders);
+                    setMissionFileName(filename);
+                    localStorage.setItem('customMissionZip', arrayBufferToBase64(zipBuffer));
+                    localStorage.removeItem('customKml');
+                    localStorage.setItem('customFileName', filename);
+                    setCurrentLine(null);
+                    setCurrentSection(null);
+                    resetFlightState();
+                    showToast(`Loaded ${filename}`, "success");
+                })
+                .catch(err => {
+                    showToast(`Error: ${err.message}`, "error");
+                    console.error(err);
+                });
+            return;
+        }
+
         fetch(`${config.bundledKmlDir}${filename}`)
             .then(res => res.text())
             .then(content => {

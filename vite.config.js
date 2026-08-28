@@ -12,7 +12,7 @@ function kmlManifestPlugin() {
 
     const writeManifest = () => {
         const files = fs.readdirSync(kmlDir)
-            .filter(f => f.toLowerCase().endsWith('.kml') || f.toLowerCase().endsWith('.txt'))
+            .filter(f => /\.(kml|txt|zip)$/i.test(f))
             .sort()
         fs.writeFileSync(manifestPath, JSON.stringify(files, null, 2))
     }
@@ -26,7 +26,7 @@ function kmlManifestPlugin() {
             writeManifest()
             server.watcher.add(kmlDir)
             server.watcher.on('all', (_event, file) => {
-                if (file.startsWith(kmlDir) && (file.endsWith('.kml') || file.endsWith('.txt'))) writeManifest()
+                if (file.startsWith(kmlDir) && /\.(kml|txt|zip)$/i.test(file)) writeManifest()
             })
         }
     }
@@ -46,7 +46,7 @@ export default defineConfig({
         VitePWA({
             registerType: 'autoUpdate',
             injectRegister: 'inline',
-            includeAssets: ['pwa-192x192.png', 'pwa-512x512.png', 'lines.kml', 'vite.svg', 'kml/*.kml', 'kml/*.txt', 'kml/manifest.json'],
+            includeAssets: ['pwa-192x192.png', 'pwa-512x512.png', 'lines.kml', 'vite.svg', 'kml/*.kml', 'kml/*.txt', 'kml/*.zip', 'kml/manifest.json'],
             manifest: {
                 name: 'AirNavi - Flight Navigator',
                 short_name: 'AirNavi',
@@ -75,7 +75,9 @@ export default defineConfig({
                 ]
             },
             workbox: {
-                globPatterns: ['**/*.{js,css,html,ico,png,svg,kml,json}'],
+                // osm/osm.zip (the offline basemap package, ~250MB) is deliberately excluded —
+                // it's fetched lazily into OPFS by OsmAssets.js, not meant to be SW-precached.
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,kml,txt,json}', 'kml/*.zip'],
                 cleanupOutdatedCaches: true
             }
         })
