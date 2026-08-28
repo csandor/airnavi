@@ -3,7 +3,7 @@ import { calculateDistance, calculateAlongTrackDistance } from '../utils/GeoUtil
 import { QUALITY_COLORS } from '../utils/QualityUtils';
 
 const EMPTY_COLOR = 'rgba(255, 255, 255, 0.15)';
-const FLOWN_DEFAULT_COLOR = 'rgba(255, 200, 0, 0.6)';
+const NOT_RECORDING_COLOR = 'rgba(80, 80, 80, 0.6)';
 
 // Vertical gauge symbolizing the selected flight line: fills from the bottom as the
 // aircraft progresses along-track, colored per-chunk by the same tracking quality
@@ -53,11 +53,11 @@ const LineGauge = ({ currentLine, direction, gpsData, flightStatus, chunkQuality
                     const segTop = height - (Math.min(chunkEnd, alongTrack) / totalLen) * height;
                     const segBottom = height - (chunkStart / totalLen) * height;
                     const quality = chunkQuality[c];
-                    ctx.fillStyle = quality ? QUALITY_COLORS[quality] : FLOWN_DEFAULT_COLOR;
+                    ctx.fillStyle = quality ? QUALITY_COLORS[quality] : NOT_RECORDING_COLOR;
                     ctx.fillRect(0, segTop, width, segBottom - segTop);
                 }
             } else if (flownHeight > 0) {
-                ctx.fillStyle = FLOWN_DEFAULT_COLOR;
+                ctx.fillStyle = NOT_RECORDING_COLOR;
                 ctx.fillRect(0, flownTop, width, flownHeight);
             }
 
