@@ -52,9 +52,9 @@ const config = {
         yellow: 10,  // Within this -> Yellow Halo. Above -> Red.
         vertical_green: 5, // Within this altitude error -> Green
         vertical_yellow: 10, // Within this -> Yellow. Above -> Red.
-        heading_green: 5,  // Within this heading error (degrees) -> auto-start recording
-        heading_yellow: 10, // Within this heading error (degrees) -> Yellow. Above -> Red.
-        start_radius: 10,  // Must be within this distance (meters) of start or end point to auto-start recording
+        heading_green: 10,  // Within this heading error (degrees) -> auto-start recording
+        heading_yellow: 15, // Within this heading error (degrees) -> Yellow. Above -> Red.
+        start_radius: 15,  // Must be within this distance (meters) of start or end point to auto-start recording
         speed_green: 75,   // Below this speed (knots) -> Green Speed. Above -> Yellow/Red.
         speed_yellow: 80  // Below this speed (knots) -> Yellow Speed. Above -> Red.
     },
