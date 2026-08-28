@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
+import { classifyQuality, QUALITY_COLORS } from '../utils/QualityUtils';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, attitude, onLayout }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, attitude, flightStatus, onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -97,10 +98,14 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             const cx = hudCenterX + offsetX;
             const cy = height / 2 + offsetY;
 
-            // Gate crosshair — circle with 4 tick lines extending inside and outside the rim
+            // Gate crosshair — circle with 4 tick lines extending inside and outside the rim.
+            // Colored by tracking quality while recording; white otherwise (matches the compass).
             const tickInner = compassRadius * 0.55; // line starts inside the circle
             const tickOuter = compassRadius * 1.2;  // line ends outside the circle
-            ctx.strokeStyle = '#00ff00';
+            const gateColor = flightStatus === 'flying'
+                ? QUALITY_COLORS[classifyQuality(crossTrackDist, altDiff, limits)]
+                : 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeStyle = gateColor;
             ctx.lineWidth = 2;
             // Circle
             ctx.beginPath();
@@ -298,7 +303,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
         return () => {
             window.removeEventListener('resize', render);
         }
-    }, [crossTrackDist, altDiff, heading, targetHeading, limits, crosshair]);
+    }, [crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus]);
 
     return (
         <canvas

@@ -887,6 +887,7 @@ function App() {
                             targetHeading={renderHudData.targetHeading}
                             limits={runtimeSettings.limits}
                             crosshair={runtimeSettings.crosshair}
+                            flightStatus={flightStatus}
                             onLayout={({ hudCenterX, canvasWidth, compassRadius }) => {
                                 setHudHorizontalOffset(hudCenterX - canvasWidth / 2);
                                 setHudRadius(compassRadius);

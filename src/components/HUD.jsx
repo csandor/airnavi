@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { calculateBearing } from '../utils/GeoUtils';
-import { classifyQuality } from '../utils/QualityUtils';
 import DistanceDisplay from './DistanceDisplay';
 
 const ARROW_SIZE = 60;
@@ -27,13 +26,7 @@ const HUD = ({
     const vGreenLimit = limits.vertical_green;
     const vYellowLimit = limits.vertical_yellow;
 
-    // Determine Halo Color (Worst case wins)
-    const HALO_COLORS = {
-        green: 'rgba(0, 255, 0, 0.6)',
-        yellow: 'rgba(255, 204, 0, 0.6)',
-        red: 'rgba(255, 0, 0, 0.5)'
-    };
-    const haloColor = HALO_COLORS[classifyQuality(crossTrackDist, altDiff, limits)];
+    const haloColor = 'rgba(255, 255, 255, 0.8)';
 
     const showLeft = crossTrackDist > greenLimit;
     const showRight = crossTrackDist < -greenLimit;
