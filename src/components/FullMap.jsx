@@ -220,8 +220,8 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
     useEffect(() => {
         if (!loaded || !mapRef.current) return;
         const map = mapRef.current;
-        const activeLines = (lines || []).filter(l => !completedLines || !completedLines.has(l.seq));
-        const doneLines = (lines || []).filter(l => completedLines && completedLines.has(l.seq));
+        const activeLines = (lines || []).filter(l => !completedLines || !completedLines.has(lineKey(l)));
+        const doneLines = (lines || []).filter(l => completedLines && completedLines.has(lineKey(l)));
 
         map.getSource('all-lines').setData({ type: 'FeatureCollection', features: activeLines.map(lineToGeoJSON) });
         map.getSource('completed-lines').setData({ type: 'FeatureCollection', features: doneLines.map(lineToGeoJSON) });
@@ -252,14 +252,15 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
             const features = map.queryRenderedFeatures(hitBox(e.point), { layers: layerIds });
             if (!features.length) return;
             const { seq, section } = features[0].properties;
-            if (completedLines && completedLines.has(seq)) return;
+            if (completedLines && completedLines.has(`${section}-${seq}`)) return;
             const line = (lines || []).find(l => l.seq === seq && l.section === section);
             if (line) onLineSelect(line);
         };
 
         const handleMove = (e) => {
             const features = map.queryRenderedFeatures(hitBox(e.point), { layers: layerIds });
-            const selectable = features.length && !(completedLines && completedLines.has(features[0].properties.seq));
+            const props = features[0]?.properties;
+            const selectable = features.length && !(completedLines && props && completedLines.has(`${props.section}-${props.seq}`));
             map.getCanvas().style.cursor = selectable ? 'pointer' : '';
         };
 

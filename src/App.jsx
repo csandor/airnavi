@@ -445,7 +445,7 @@ function App() {
     const handleLineRestore = (seq) => {
         setCompletedLines(prev => {
             const next = new Set(prev);
-            next.delete(seq);
+            next.delete(`${currentSection}-${seq}`);
             return next;
         });
 
@@ -492,7 +492,7 @@ function App() {
     const advanceToNextLine = () => {
         if (!currentLine) return;
         const nextSeq = currentLine.seq + 1;
-        const nextLine = lines.find(l => l.section === currentLine.section && l.seq >= nextSeq && !completedLines.has(l.seq));
+        const nextLine = lines.find(l => l.section === currentLine.section && l.seq >= nextSeq && !completedLines.has(`${l.section}-${l.seq}`));
         if (nextLine) {
             handleLineSelect(nextLine);
             showToast(`Switched to Line ${nextLine.seq}`, "success");
@@ -504,7 +504,7 @@ function App() {
         const seqToAdd = currentLine.seq;
         setCompletedLines(prev => {
             const next = new Set(prev);
-            next.add(seqToAdd);
+            next.add(`${currentLine.section}-${seqToAdd}`);
             return next;
         });
         showToast(`Line ${seqToAdd} Saved.`, "success");
@@ -750,7 +750,7 @@ function App() {
     }
 
     const sectionLines = lines.filter(l => l.section === currentSection);
-    const availableLines = sectionLines.filter(l => !completedLines.has(l.seq));
+    const availableLines = sectionLines.filter(l => !completedLines.has(`${l.section}-${l.seq}`));
 
     return (
         <div className="app-container" style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -771,7 +771,7 @@ function App() {
                     onLineSelect={handleLineSelect}
                     direction={direction}
                     onDirectionToggle={toggleDirection}
-                    completedLines={sectionLines.filter(l => completedLines.has(l.seq))}
+                    completedLines={sectionLines.filter(l => completedLines.has(`${l.section}-${l.seq}`))}
                     onLineRestore={handleLineRestore}
                     // Section Props
                     sections={sections}
