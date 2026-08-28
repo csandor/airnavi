@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { parseKML } from './utils/KMLParser'
 import { parseTXT } from './utils/TxtParser'
+import { parseZipMission } from './utils/ZipMissionParser'
 import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBearing, calculateDistance, calculateAlongTrackDistance, destinationPoint } from './utils/GeoUtils'
 import { classifyQuality, worseQuality } from './utils/QualityUtils'
 import { planDubinsPath } from './utils/DubinsUtils'
@@ -22,7 +23,7 @@ import config from './config'
 import './App.css'
 
 // Orders a section's lines per a custom row-order seq list (falling back to plain
-// seq order when rowOrder is null, or for any seq the list doesn't mention).
+// seq order when rowOrder is null/undefined, or for any seq the list doesn't mention).
 const orderLinesByRowOrder = (sectionLines, rowOrder) => {
     if (!rowOrder) return sectionLines;
     const rank = new Map(rowOrder.map((seq, i) => [seq, i]));
@@ -31,6 +32,22 @@ const orderLinesByRowOrder = (sectionLines, rowOrder) => {
         const rb = rank.has(b.seq) ? rank.get(b.seq) : rowOrder.length + b.seq;
         return ra - rb;
     });
+};
+
+// A mission zip is persisted to localStorage (for reload) as base64, since
+// localStorage only stores strings and the archive is binary.
+const arrayBufferToBase64 = (buffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+};
+
+const base64ToArrayBuffer = (base64) => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
 };
 
 const applyGeoidUndulation = (lines) => {
@@ -46,14 +63,17 @@ const applyGeoidUndulation = (lines) => {
 // KML altitudes are MSL and need geoid undulation to become ellipsoidal;
 // TXT altitudes are already ellipsoidal. KML lines have no section concept,
 // so they're all tagged into a single implicit section.
-// Returns {lines, rowOrder} — rowOrder is only ever non-null for a single-section
-// TXT file that declares a custom row-order header comment (see TxtParser.js).
+// Returns {lines, rowOrders} — rowOrders is a map of section -> custom seq order,
+// populated for single-section TXT files with a row-order header comment (see
+// TxtParser.js) and for zip missions bundling one such file per section.
 const parseFlightFile = (filename, content) => {
     if (/\.txt$/i.test(filename)) {
-        return parseTXT(content);
+        const { lines, rowOrder } = parseTXT(content);
+        const section = lines[0]?.section;
+        return { lines, rowOrders: rowOrder ? { [section]: rowOrder } : {} };
     }
     const lines = applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
-    return { lines, rowOrder: null };
+    return { lines, rowOrders: {} };
 };
 
 const loadRuntimeSettings = () => {
@@ -84,7 +104,7 @@ function App() {
     const [completedLines, setCompletedLines] = useState(new Set())
     const [lines, setLines] = useState([])
     const [missionFileName, setMissionFileName] = useState('lines.kml')
-    const [rowOrder, setRowOrder] = useState(null)
+    const [rowOrders, setRowOrders] = useState({})
     const [currentLine, setCurrentLine] = useState(null)
     const [currentSection, setCurrentSection] = useState(null)
     const [direction, setDirection] = useState('normal')
@@ -200,14 +220,32 @@ function App() {
     }, []);
 
     useEffect(() => {
-        // Try local storage first
+        // Try local storage first — a zip mission (base64) takes priority over a plain
+        // single-file mission (raw text), since only one can be active at a time.
+        const savedZipBase64 = localStorage.getItem('customMissionZip');
         const savedKml = localStorage.getItem('customKml');
-        if (savedKml) {
-            const savedFileName = localStorage.getItem('customFileName') || 'custom.kml';
+        const savedFileName = localStorage.getItem('customFileName') || 'custom.kml';
+
+        if (savedZipBase64) {
             try {
-                const { lines: parsedLines, rowOrder: parsedRowOrder } = parseFlightFile(savedFileName, savedKml);
+                const zipBuffer = base64ToArrayBuffer(savedZipBase64);
+                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseZipMission(zipBuffer);
                 setLines(parsedLines);
-                setRowOrder(parsedRowOrder);
+                setRowOrders(parsedRowOrders);
+                setMissionFileName(savedFileName);
+                showToast("Loaded Custom Mission Zip", "success");
+                return;
+            } catch (e) {
+                console.error("Failed to parse saved mission zip", e);
+                showToast(`Error in Saved Mission Zip: ${e.message}`, "error");
+                localStorage.removeItem('customMissionZip');
+                localStorage.removeItem('customFileName');
+            }
+        } else if (savedKml) {
+            try {
+                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseFlightFile(savedFileName, savedKml);
+                setLines(parsedLines);
+                setRowOrders(parsedRowOrders);
                 setMissionFileName(savedFileName);
                 showToast("Loaded Custom Flight File", "success");
                 return;
@@ -225,7 +263,7 @@ function App() {
             .then(text => {
                 const parsedLines = applyGeoidUndulation(parseKML(text)).map(l => ({ ...l, section: 1 }))
                 setLines(parsedLines)
-                setRowOrder(null)
+                setRowOrders({})
                 setMissionFileName(config.kmlFilePath.split('/').pop())
             })
             .catch(err => console.error("Failed to load KML", err))
@@ -261,10 +299,11 @@ function App() {
         fetch(`${config.bundledKmlDir}${filename}`)
             .then(res => res.text())
             .then(content => {
-                const { lines: parsedLines, rowOrder: parsedRowOrder } = parseFlightFile(filename, content);
+                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseFlightFile(filename, content);
                 setLines(parsedLines);
-                setRowOrder(parsedRowOrder);
+                setRowOrders(parsedRowOrders);
                 setMissionFileName(filename);
+                localStorage.removeItem('customMissionZip');
                 localStorage.setItem('customKml', content);
                 localStorage.setItem('customFileName', filename);
                 setCurrentLine(null);
@@ -282,14 +321,40 @@ function App() {
         const file = event.target.files[0];
         if (!file) return;
 
+        if (/\.zip$/i.test(file.name)) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const zipBuffer = e.target.result;
+                try {
+                    const { lines: parsedLines, rowOrders: parsedRowOrders } = parseZipMission(zipBuffer);
+                    setLines(parsedLines);
+                    setRowOrders(parsedRowOrders);
+                    setMissionFileName(file.name);
+                    localStorage.setItem('customMissionZip', arrayBufferToBase64(zipBuffer));
+                    localStorage.removeItem('customKml');
+                    localStorage.setItem('customFileName', file.name);
+                    setCurrentLine(null);
+                    setCurrentSection(null);
+                    resetFlightState();
+                    showToast("Successfully Imported Mission Zip", "success");
+                } catch (err) {
+                    showToast(`Error: ${err.message}`, "error");
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => {
             const content = e.target.result;
             try {
-                const { lines: parsedLines, rowOrder: parsedRowOrder } = parseFlightFile(file.name, content);
+                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseFlightFile(file.name, content);
                 setLines(parsedLines);
-                setRowOrder(parsedRowOrder);
+                setRowOrders(parsedRowOrders);
                 setMissionFileName(file.name);
+                localStorage.removeItem('customMissionZip');
                 localStorage.setItem('customKml', content);
                 localStorage.setItem('customFileName', file.name);
                 setCurrentLine(null);
@@ -542,6 +607,7 @@ function App() {
         if (!currentLine) return;
         const isAvailable = (l) => !completedLines.has(`${l.section}-${l.seq}`);
         const currentSectionLines = lines.filter(l => l.section === currentLine.section);
+        const rowOrder = rowOrders[currentLine.section];
 
         let nextLine;
         if (rowOrder) {
@@ -817,7 +883,7 @@ function App() {
         renderHudData.targetHeading = lineBearing;
     }
 
-    const sectionLines = orderLinesByRowOrder(lines.filter(l => l.section === currentSection), rowOrder);
+    const sectionLines = orderLinesByRowOrder(lines.filter(l => l.section === currentSection), rowOrders[currentSection]);
     const availableLines = sectionLines.filter(l => !completedLines.has(`${l.section}-${l.seq}`));
 
     return (

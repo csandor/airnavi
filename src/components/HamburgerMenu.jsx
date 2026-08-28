@@ -101,7 +101,7 @@ const HamburgerMenu = ({
                         >
                             <input
                                 type="file"
-                                accept=".kml,.txt"
+                                accept=".kml,.txt,.zip"
                                 onChange={(e) => {
                                     onKmlImport(e);
                                     setIsOpen(false);
