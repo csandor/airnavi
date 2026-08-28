@@ -28,7 +28,7 @@ const config = {
 
     // Simulation Settings
     simulation: {
-        speedKnots: 60,
+        speedKnots: 70,
         preStartDistanceFactor: 0.1, // Start this fraction of the line length before the start point, and continue the same distance past the end point
         jitter: {
             horizontalMeters: 10, // Max +/- deviation in meters
@@ -48,15 +48,15 @@ const config = {
 
     // Limits for Halo Colors (meters)
     limits: {
-        green: 2,   // Within this cross-track error -> Green Halo & Completes Line
-        yellow: 4,  // Within this -> Yellow Halo. Above -> Red.
-        vertical_green: 2, // Within this altitude error -> Green
-        vertical_yellow: 4, // Within this -> Yellow. Above -> Red.
+        green: 5,   // Within this cross-track error -> Green Halo & Completes Line
+        yellow: 10,  // Within this -> Yellow Halo. Above -> Red.
+        vertical_green: 5, // Within this altitude error -> Green
+        vertical_yellow: 10, // Within this -> Yellow. Above -> Red.
         heading_green: 5,  // Within this heading error (degrees) -> auto-start recording
         heading_yellow: 10, // Within this heading error (degrees) -> Yellow. Above -> Red.
         start_radius: 10,  // Must be within this distance (meters) of start or end point to auto-start recording
-        speed_green: 50,   // Below this speed (knots) -> Green Speed. Above -> Yellow/Red.
-        speed_yellow: 70  // Below this speed (knots) -> Yellow Speed. Above -> Red.
+        speed_green: 75,   // Below this speed (knots) -> Green Speed. Above -> Yellow/Red.
+        speed_yellow: 80  // Below this speed (knots) -> Yellow Speed. Above -> Red.
     },
 
     // Dubins path planning mode (big map guidance to the flight line start)
