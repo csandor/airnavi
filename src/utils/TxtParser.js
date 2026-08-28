@@ -51,5 +51,16 @@ export const parseTXT = (txtText) => {
         lines.push({ seq, section, start: points[0], end: points[1] });
     }
 
+    // Sections numbered from 0 are shifted to start from 1; sections starting
+    // at any other number are left as-is (they already use the file's own numbering).
+    const minSeqBySection = new Map();
+    lines.forEach(l => {
+        const min = minSeqBySection.get(l.section);
+        if (min === undefined || l.seq < min) minSeqBySection.set(l.section, l.seq);
+    });
+    lines.forEach(l => {
+        if (minSeqBySection.get(l.section) === 0) l.seq += 1;
+    });
+
     return lines.sort((a, b) => a.section - b.section || a.seq - b.seq);
 };
