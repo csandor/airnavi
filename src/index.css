@@ -193,3 +193,29 @@ button {
         transform: translateY(-10px) scale(0.95);
     }
 }
+/* Update-available banner (UpdatePrompt.jsx), shown in the toast area */
+.update-prompt {
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-left: 3px solid hsl(var(--color-accent-primary));
+}
+
+.update-prompt-warning {
+    color: hsl(var(--color-warning));
+    font-size: 0.8rem;
+}
+
+.update-prompt-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.update-prompt-later {
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    border: 1px solid hsla(var(--color-text-primary), 0.3);
+}

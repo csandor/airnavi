@@ -56,8 +56,10 @@ export default defineConfig({
         kmlManifestPlugin(),
         react(),
         VitePWA({
-            registerType: 'autoUpdate',
-            injectRegister: 'inline',
+            // The new version waits until the pilot taps Reload in UpdatePrompt.jsx, which
+            // also registers the service worker (hence no injected registration script).
+            registerType: 'prompt',
+            injectRegister: false,
             includeAssets: ['pwa-192x192.png', 'pwa-512x512.png', 'lines.kml', 'vite.svg', 'kml/*.kml', 'kml/*.txt', 'kml/*.zip', 'kml/manifest.json'],
             manifest: {
                 name: 'AirNavi - Flight Navigator',

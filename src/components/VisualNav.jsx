@@ -417,7 +417,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
         return () => {
             window.removeEventListener('resize', render);
         }
-    }, [crossTrackDist, altDiff, heading, targetHeading, limits, showGauge, showMap, units]);
+    }, [crossTrackDist, altDiff, heading, targetHeading, limits, showGauge, showMap, units, onLayout]);
 
     return (
         <canvas

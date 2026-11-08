@@ -58,7 +58,8 @@ This project keeps all agent memory in **bd** and **lat.md** — not in Claude C
 - `LineSelector.jsx` — line picker + completed lines restore; displays lines in row order when one applies (see [Row Order](#row-order))
 - `SummaryDialog.jsx` — post-flight summary; auto-close delay comes from `runtimeSettings.summaryAutoCloseSeconds`, not `config.js` directly
 - `Toast.jsx` — transient notifications
-- Units default to **imperial** (`units` state in App, not persisted); the ILS legend follows them
+- `UpdatePrompt.jsx` — registers the service worker and shows "new version ready — Reload" (hidden while flying; never reloads by itself)
+- Units default to **imperial** (`units` state in App, remembered in `localStorage` key `units`, separate from `runtimeSettings`); the ILS legend follows them
 
 ## Data Flow
 1. KML loaded → `parseKML()` → `applyGeoidUndulation()` → `lines` state (App.jsx). TXT/zip loaded → `parseTXT()`/`parseZipMission()` → `lines` + `rowOrders` state (no undulation — TXT altitudes are already ellipsoidal)

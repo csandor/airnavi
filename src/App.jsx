@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react'
 import { parseKML } from './utils/KMLParser'
 import { parseTXT } from './utils/TxtParser'
 import { parseZipMission } from './utils/ZipMissionParser'
@@ -20,6 +20,7 @@ import DistanceDisplay from './components/DistanceDisplay'
 import SummaryDialog from './components/SummaryDialog'
 import SettingsDialog from './components/SettingsDialog'
 import Toast from './components/Toast'
+import UpdatePrompt from './components/UpdatePrompt'
 import config from './config'
 import './App.css'
 
@@ -136,7 +137,10 @@ function App() {
     const [flightStatus, setFlightStatus] = useState('idle')
     const [simulating, setSimulating] = useState(false)
     const [notification, setNotification] = useState(null) // { message, type }
-    const [units, setUnits] = useState('imperial'); // 'metric' or 'imperial'
+    // 'metric' or 'imperial'; defaults to imperial, remembered in localStorage key 'units'
+    const [units, setUnits] = useState(() =>
+        localStorage.getItem('units') === 'metric' ? 'metric' : 'imperial');
+    useEffect(() => { localStorage.setItem('units', units); }, [units]);
     const [showSummary, setShowSummary] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [runtimeSettings, setRuntimeSettings] = useState(loadRuntimeSettings);
@@ -149,8 +153,8 @@ function App() {
 
     // Face rectangles of the docked line gauge / minimap, reported by VisualNav's layout
     const [panelFaces, setPanelFaces] = useState({ gauge: null, map: null });
-    const handlePanelLayout = (faces) => setPanelFaces(prev =>
-        JSON.stringify(prev) === JSON.stringify(faces) ? prev : faces);
+    const handlePanelLayout = useCallback((faces) => setPanelFaces(prev =>
+        JSON.stringify(prev) === JSON.stringify(faces) ? prev : faces), []);
 
     const [showMiniMap, setShowMiniMap] = useState(true);
     const [mapMaximized, setMapMaximized] = useState(false);
@@ -228,14 +232,6 @@ function App() {
             lastDubinsUpdate.current = 0;
         }
     }, [flightStatus, planningMode]);
-
-    useEffect(() => {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(registration => {
-                console.log('PWA Service Worker Ready:', registration);
-            });
-        }
-    }, []);
 
     useEffect(() => {
         // Try local storage first — a zip mission (base64) takes priority over a plain
@@ -611,6 +607,10 @@ function App() {
             showToast(`Switched to Line ${nextLine.seq}`, "success");
         }
     };
+    // The GPS logic loop calls the latest finishFlight through this ref, so the loop still
+    // runs once per fix (as a dependency, finishFlight would re-run it on every render).
+    const finishFlightRef = useRef(finishFlight);
+    useEffect(() => { finishFlightRef.current = finishFlight; });
 
     const handleKeep = () => {
         setShowSummary(false);
@@ -821,7 +821,7 @@ function App() {
             flightStatus !== 'completed' &&
             !completionLock.current) {
             completionLock.current = true;
-            finishFlight();
+            finishFlightRef.current();
         }
 
         prevAlongTrack.current = alongTrack;
@@ -867,6 +867,10 @@ function App() {
 
     return (
         <div className="app-container" style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <UpdatePrompt
+                flying={flightStatus === 'flying'}
+                hasUnsavedWork={completedLines.size > 0 || flightLogger.history.length > 0}
+            />
             {notification && (
                 <div className="toast-container">
                     <Toast

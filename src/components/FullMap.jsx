@@ -35,6 +35,11 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
     const [downloadError, setDownloadError] = useState(null);
     const autoZoomRef = useRef(autoZoom);
     useEffect(() => { autoZoomRef.current = autoZoom; }, [autoZoom]);
+    // The map is created once per mount: it starts from the bounds given at mount time and
+    // reports its final bounds through the latest callback on unmount.
+    const initialBoundsRef = useRef(initialBounds);
+    const onBoundsChangeRef = useRef(onBoundsChange);
+    useEffect(() => { onBoundsChangeRef.current = onBoundsChange; }, [onBoundsChange]);
 
     // Init map once
     useEffect(() => {
@@ -53,8 +58,8 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
             mapRef.current = map;
 
             map.on('load', () => {
-                if (initialBounds) {
-                    map.fitBounds(initialBounds, { animate: false });
+                if (initialBoundsRef.current) {
+                    map.fitBounds(initialBoundsRef.current, { animate: false });
                 }
                 map.addSource('all-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
                 map.addLayer({
@@ -160,9 +165,9 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
             });
 
             cleanup = () => {
-                if (!autoZoomRef.current && onBoundsChange) {
+                if (!autoZoomRef.current && onBoundsChangeRef.current) {
                     const b = map.getBounds();
-                    onBoundsChange([[b.getWest(), b.getSouth()], [b.getEast(), b.getNorth()]]);
+                    onBoundsChangeRef.current([[b.getWest(), b.getSouth()], [b.getEast(), b.getNorth()]]);
                 }
                 map.remove();
                 mapRef.current = null;
