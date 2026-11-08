@@ -47,11 +47,11 @@ Output goes to `dist/`. The build includes the PWA service worker so the app wor
 npm run preview
 ```
 
-### Deploy to GitHub Pages
+### Deploy (viamap FTP)
 ```
 npm run deploy
 ```
-Runs the build and publishes `dist/` to the `gh-pages` branch. The app is then available at your repository's GitHub Pages URL.
+Runs the build and uploads `dist/` over FTP to `public_html/airnavi` on ftp.viamap.hu, served at https://new.viamap.hu/airnavi/. Credentials come from `FTP_*` environment variables or the gitignored `.vscode/ftp-sync.json`. The ~250 MB offline map package is only re-uploaded when its size changes.
 
 ---
 
