@@ -8,6 +8,7 @@ import { planDubinsPath } from './utils/DubinsUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { flightLogger } from './utils/FlightLogger'
 import { useWakeLock } from './hooks/useWakeLock'
+import { resolveGpsAltitudeDatum, toEllipsoidalAltitude } from './utils/AltitudeDatum'
 import { downloadKMZ } from './utils/KMZExporter'
 import LineSelector from './components/LineSelector'
 import HUD from './components/HUD'
@@ -82,6 +83,7 @@ const loadRuntimeSettings = () => {
         limits: config.limits,
         dubins: config.dubins,
         summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
+        gpsAltitudeDatum: config.gpsAltitudeDatum,
     };
     const saved = localStorage.getItem('runtimeSettings');
     if (!saved) return defaults;
@@ -92,6 +94,7 @@ const loadRuntimeSettings = () => {
             limits: { ...defaults.limits, ...parsed.limits },
             dubins: { ...defaults.dubins, ...parsed.dubins },
             summaryAutoCloseSeconds: parsed.summaryAutoCloseSeconds ?? defaults.summaryAutoCloseSeconds,
+            gpsAltitudeDatum: parsed.gpsAltitudeDatum ?? defaults.gpsAltitudeDatum,
         };
     } catch {
         return defaults;
@@ -188,6 +191,7 @@ function App() {
             limits: config.limits,
             dubins: config.dubins,
             summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
+            gpsAltitudeDatum: config.gpsAltitudeDatum,
         });
     };
 
@@ -411,13 +415,17 @@ function App() {
         showToast("Mission Reset", "success");
     };
 
+    // Line altitudes are ellipsoidal; convert the device's GPS altitude to match
+    // (iOS/iPadOS report MSL — see AltitudeDatum.js).
+    const gpsAltitudeDatum = resolveGpsAltitudeDatum(runtimeSettings.gpsAltitudeDatum);
+
     useEffect(() => {
         if (simulating) return;
         const handlePos = (pos) => {
             const data = {
                 lat: pos.coords.latitude,
                 lon: pos.coords.longitude,
-                alt: pos.coords.altitude || 0,
+                alt: toEllipsoidalAltitude(pos.coords.altitude, gpsAltitudeDatum, config.geoidUndulation),
                 speed: pos.coords.speed || 0,
                 heading: pos.coords.heading || 0
             };
@@ -429,7 +437,7 @@ function App() {
             timeout: 5000
         });
         return () => navigator.geolocation.clearWatch(watchId);
-    }, [simulating]);
+    }, [simulating, gpsAltitudeDatum]);
 
     // Global mouse and touch handlers for MiniMap dragging
     useEffect(() => {

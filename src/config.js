@@ -21,6 +21,10 @@ const config = {
     // KML altitudes are treated as MSL; add this to get MSL.
     // e.g. undulation=40 means ellipsoidal 200m -> MSL 160m.
     geoidUndulation: 43.1,
+    // Datum of the device's GPS altitude (coords.altitude): 'auto' | 'ellipsoidal' | 'msl'.
+    // 'auto' assumes MSL on iPhone/iPad (WebKit reports height above sea level) and
+    // ellipsoidal elsewhere; MSL readings get geoidUndulation added. Runtime-overridable.
+    gpsAltitudeDatum: 'auto',
 
     // UI / UX
     summaryAutoCloseSeconds: 10,

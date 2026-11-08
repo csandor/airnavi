@@ -107,7 +107,7 @@ Unzips (via `fflate`'s `unzipSync`) an archive containing several single-section
 - Test fixture: `public/kml/kuldetes_M3_3cm_2026.zip` (43 sections) — see [Test Files](#test-files).
 
 ## Altitude Datum
-- Browser `coords.altitude` = WGS-84 ellipsoidal
+- Browser `coords.altitude` = WGS-84 ellipsoidal on Android, but **MSL on iOS/iPadOS** (WebKit passes CoreLocation's MSL through). `AltitudeDatum.js` converts it per the `gpsAltitudeDatum` setting (`auto` = MSL on iPhone/iPad) by adding `geoidUndulation`
 - KML altitudes = MSL (as entered by user/GIS tool)
 - `config.geoidUndulation` (meters) is added to KML alts after parsing to put them on the same ellipsoidal datum as GPS
 - Formula: `ellipsoidal = MSL + undulation`

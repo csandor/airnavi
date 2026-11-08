@@ -35,9 +35,11 @@ Only files matching `mis` + exactly three digits + `.txt` are parsed, which excl
 
 ## Altitude Datum
 
-GPS altitude is WGS-84 ellipsoidal while KML altitudes are MSL. Lines are normalised to ellipsoidal height before any vertical deviation is computed.
+All comparisons happen on WGS-84 ellipsoidal height. Both line altitudes and the device's GPS altitude are normalised to it before any vertical deviation is computed.
 
 `applyGeoidUndulation` adds [[src/config.js#config|config.geoidUndulation]] to KML altitudes only (`ellipsoidal = MSL + undulation`; Hungary is roughly 43–46 m). TXT and zip lines skip it because their altitudes are already ellipsoidal.
+
+Device altitude is not always ellipsoidal: Android browsers report it as the Geolocation spec says, but iOS/iPadOS WebKit passes through CoreLocation's height above mean sea level. Reading it as ellipsoidal put an iPad about 43 m too low, so `vertical_green` never passed and recording never auto-started. [[src/utils/AltitudeDatum.js#resolveGpsAltitudeDatum]] turns the `gpsAltitudeDatum` setting (`auto`, `ellipsoidal`, `msl`) into the device's datum, with `auto` meaning MSL on iPhone/iPad. iPadOS sends a Mac user agent, so a touch-capable Mac counts as an iPad. [[src/utils/AltitudeDatum.js#toEllipsoidalAltitude]] then adds the undulation to MSL readings in the GPS watch. The simulator skips this because it already flies the lines' ellipsoidal altitudes.
 
 ## Mission Storage
 

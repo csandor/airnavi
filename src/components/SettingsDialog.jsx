@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { resolveGpsAltitudeDatum } from '../utils/AltitudeDatum';
+
+const DATUM_LABELS = { ellipsoidal: 'Ellipsoidal (WGS-84)', msl: 'Sea level (MSL)' };
 
 const FIELD_GROUPS = [
     {
@@ -48,6 +51,7 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
     const [form, setForm] = useState(() => ({
         ...toFormStrings({ crosshair: settings.crosshair, limits: settings.limits, dubins: settings.dubins }),
         summaryAutoCloseSeconds: String(settings.summaryAutoCloseSeconds),
+        gpsAltitudeDatum: settings.gpsAltitudeDatum,
     }));
 
     const handleChange = (groupKey, fieldKey, rawValue) => {
@@ -73,6 +77,7 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
         );
         const summaryAutoCloseSeconds = parseFloat(form.summaryAutoCloseSeconds);
         parsed.summaryAutoCloseSeconds = Number.isNaN(summaryAutoCloseSeconds) ? settings.summaryAutoCloseSeconds : summaryAutoCloseSeconds;
+        parsed.gpsAltitudeDatum = form.gpsAltitudeDatum;
         onSave(parsed);
         onClose();
     };
@@ -153,6 +158,32 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
                 >
                     {showLineGauge ? 'Shown' : 'Hidden'}
                 </button>
+            </div>
+
+            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
+                    GPS Altitude
+                </h3>
+                <label style={{ display: 'block', fontSize: '0.8em', marginBottom: '2px' }} title="Which datum this device reports GPS altitude in. Sea-level readings get the geoid undulation added so they match the ellipsoidal line altitudes.">
+                    Device altitude datum
+                </label>
+                <select
+                    value={form.gpsAltitudeDatum}
+                    onChange={(e) => handleTopLevelChange('gpsAltitudeDatum', e.target.value)}
+                    style={{
+                        width: '100%',
+                        padding: 'var(--spacing-sm)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(0,0,0,0.3)',
+                        color: 'white',
+                        fontSize: '1em'
+                    }}
+                >
+                    <option value="auto">Auto (this device: {DATUM_LABELS[resolveGpsAltitudeDatum('auto')]})</option>
+                    <option value="ellipsoidal">{DATUM_LABELS.ellipsoidal}</option>
+                    <option value="msl">{DATUM_LABELS.msl}</option>
+                </select>
             </div>
 
             {FIELD_GROUPS.map(group => (
