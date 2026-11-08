@@ -52,7 +52,7 @@ This project keeps all agent memory in **bd** and **lat.md** — not in Claude C
 
 ### Components
 - `HUD.jsx` — primary flight deviation display. The center halo circle is always white (does not reflect tracking quality)
-- `VisualNav.jsx` — visual alignment indicator (attitude compass + gate ring). The gate ring (ticks around the target) turns green/yellow/red by `classifyQuality()` while `flightStatus === 'flying'`, white otherwise
+- `VisualNav.jsx` — visual alignment indicator (attitude compass + gate ring). The gate ring (ticks around the target) turns green/yellow/red by `classifyQuality()` while `flightStatus === 'flying'`, white otherwise. With `navInstrument: 'ils'` the gate is replaced by an ILS-style needle dial (`IlsScale.js`: 1 dot = green limit, 2 dots = yellow)
 - `MiniMap.jsx` — draggable map overview
 - `LineSelector.jsx` — line picker + completed lines restore; displays lines in row order when one applies (see [Row Order](#row-order))
 - `SummaryDialog.jsx` — post-flight summary; auto-close delay comes from `runtimeSettings.summaryAutoCloseSeconds`, not `config.js` directly

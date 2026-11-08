@@ -29,6 +29,9 @@ const config = {
     // use them for the green/yellow limits of that section instead of `limits` below.
     // Runtime-overridable (Settings > Flight Line Quality).
     useMissionTolerances: true,
+    // Right-hand nav instrument: 'gate' (moving target ring) or 'ils' (fixed dial with
+    // course/glideslope needles, like the legacy GreyBox panel). Runtime-overridable.
+    navInstrument: 'gate',
 
     // UI / UX
     summaryAutoCloseSeconds: 10,

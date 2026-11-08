@@ -90,6 +90,7 @@ const loadRuntimeSettings = () => {
         summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
         gpsAltitudeDatum: config.gpsAltitudeDatum,
         useMissionTolerances: config.useMissionTolerances,
+        navInstrument: config.navInstrument,
     };
     const saved = localStorage.getItem('runtimeSettings');
     if (!saved) return defaults;
@@ -102,6 +103,7 @@ const loadRuntimeSettings = () => {
             summaryAutoCloseSeconds: parsed.summaryAutoCloseSeconds ?? defaults.summaryAutoCloseSeconds,
             gpsAltitudeDatum: parsed.gpsAltitudeDatum ?? defaults.gpsAltitudeDatum,
             useMissionTolerances: parsed.useMissionTolerances ?? defaults.useMissionTolerances,
+            navInstrument: parsed.navInstrument ?? defaults.navInstrument,
         };
     } catch {
         return defaults;
@@ -202,6 +204,7 @@ function App() {
             summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
             gpsAltitudeDatum: config.gpsAltitudeDatum,
             useMissionTolerances: config.useMissionTolerances,
+            navInstrument: config.navInstrument,
         });
     };
 
@@ -1080,6 +1083,7 @@ function App() {
                             limits={limits}
                             crosshair={runtimeSettings.crosshair}
                             flightStatus={flightStatus}
+                            instrument={runtimeSettings.navInstrument}
                             onLayout={({ hudCenterX, canvasWidth, compassRadius }) => {
                                 setHudHorizontalOffset(hudCenterX - canvasWidth / 2);
                                 setHudRadius(compassRadius);
@@ -1092,6 +1096,7 @@ function App() {
                                 limits={limits}
                                 horizontalOffset={hudHorizontalOffset}
                                 radius={hudRadius}
+                                showTarget={runtimeSettings.navInstrument !== 'ils'}
                             />
                         </div>
 

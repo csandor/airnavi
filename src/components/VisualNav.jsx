@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { classifyQuality, QUALITY_COLORS } from '../utils/QualityUtils';
+import { deviationToDots, axisQuality } from '../utils/IlsScale';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus, onLayout }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus, instrument = 'gate', onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -90,48 +91,124 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             // Notify parent of gate center so HUD halo can be aligned to it
             if (onLayout) onLayout({ hudCenterX, canvasWidth: width, compassRadius });
 
-            const maxPx = compassRadius * 2;
-            const offsetX = -logDisplace(crossTrackDist, crosshair.maxCrossTrack, maxPx);
-            const offsetY =  logDisplace(altDiff,        crosshair.maxAltDiff,    maxPx);
+            // ILS-style course deviation dial (like the legacy GreyBox navigation panel):
+            // fixed dial, vertical needle = cross-track, horizontal needle = vertical
+            // deviation. Needles show where the line is ("fly to the needle"), same sign
+            // convention as the gate. Dots are scaled by the active limits, so being
+            // inside the inner (green) zone on both needles means green quality.
+            const drawIls = (x, y, radius) => {
+                const dot = radius * 0.32; // 1 dot; MAX_DOTS * dot stays inside the rim
+                const needleX = x - deviationToDots(crossTrackDist, limits.green, limits.yellow) * dot;
+                const needleY = y + deviationToDots(altDiff, limits.vertical_green, limits.vertical_yellow) * dot;
 
-            const cx = hudCenterX + offsetX;
-            const cy = height / 2 + offsetY;
+                ctx.save();
+                // Dial face
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(58, 22, 28, 0.85)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.clip();
 
-            // Gate crosshair — circle with 4 tick lines extending inside and outside the rim.
-            // Colored by tracking quality while recording; white otherwise (matches the compass).
-            const tickInner = compassRadius * 0.55; // line starts inside the circle
-            const tickOuter = compassRadius * 1.2;  // line ends outside the circle
-            const gateColor = flightStatus === 'flying'
-                ? QUALITY_COLORS[classifyQuality(crossTrackDist, altDiff, limits)]
-                : 'rgba(255, 255, 255, 0.8)';
-            ctx.strokeStyle = gateColor;
-            ctx.lineWidth = 2;
-            // Circle
-            ctx.beginPath();
-            ctx.arc(cx, cy, compassRadius, 0, Math.PI * 2);
-            ctx.stroke();
-            // Four ticks
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - tickOuter); ctx.lineTo(cx, cy - tickInner); // top
-            ctx.moveTo(cx, cy + tickInner); ctx.lineTo(cx, cy + tickOuter); // bottom
-            ctx.moveTo(cx - tickOuter, cy); ctx.lineTo(cx - tickInner, cy); // left
-            ctx.moveTo(cx + tickInner, cy); ctx.lineTo(cx + tickOuter, cy); // right
-            ctx.stroke();
+                // Quality zones: within 2 dots on both axes = yellow, within 1 dot = green
+                ctx.fillStyle = 'rgba(200, 170, 0, 0.45)';
+                ctx.beginPath();
+                ctx.arc(x, y, dot * 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(0, 150, 60, 0.75)';
+                ctx.beginPath();
+                ctx.arc(x, y, dot, 0, Math.PI * 2);
+                ctx.fill();
 
-            // Draw lines connecting corners to a vanishing point?
-            // Vanishing point would be further offset?
-            // For simple visualization, just the gate moving relative to center is enough.
+                // Scale dots on both axes
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.lineWidth = 1.5;
+                const dotR = Math.max(2.5, radius * 0.035);
+                [-2, -1, 1, 2].forEach(n => {
+                    ctx.beginPath(); ctx.arc(x + n * dot, y, dotR, 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(x, y + n * dot, dotR, 0, Math.PI * 2); ctx.stroke();
+                });
 
-            // Center Crosshair (Aircraft)
-            const crossSize = Math.floor(20 * scale_factor);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(hudCenterX - crossSize, height / 2);
-            ctx.lineTo(hudCenterX + crossSize, height / 2);
-            ctx.moveTo(hudCenterX, height / 2 - crossSize);
-            ctx.lineTo(hudCenterX, height / 2 + crossSize);
-            ctx.stroke();
+                // Needles, coloured by that axis' quality
+                const needleHalf = radius * 0.85;
+                const needleWidth = Math.max(3, radius * 0.05);
+                ctx.lineCap = 'round';
+                ctx.lineWidth = needleWidth;
+                ctx.strokeStyle = QUALITY_COLORS[axisQuality(crossTrackDist, limits.green, limits.yellow)];
+                ctx.beginPath();
+                ctx.moveTo(needleX, y - needleHalf);
+                ctx.lineTo(needleX, y + needleHalf);
+                ctx.stroke();
+                ctx.strokeStyle = QUALITY_COLORS[axisQuality(altDiff, limits.vertical_green, limits.vertical_yellow)];
+                ctx.beginPath();
+                ctx.moveTo(x - needleHalf, needleY);
+                ctx.lineTo(x + needleHalf, needleY);
+                ctx.stroke();
+
+                // Fixed aircraft reference at the centre
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(x, y, Math.max(3, radius * 0.05), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Scale legend under the dial: what one dot means on each axis
+                const fontSize = Math.max(10, Math.round(radius * 0.13));
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.font = `${fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`1 dot: ↔ ${limits.green} m  ↕ ${limits.vertical_green} m`, x, y + radius + fontSize * 0.5);
+            };
+
+            if (instrument === 'ils') {
+                drawIls(hudCenterX, height / 2, compassRadius);
+            } else {
+                const maxPx = compassRadius * 2;
+                const offsetX = -logDisplace(crossTrackDist, crosshair.maxCrossTrack, maxPx);
+                const offsetY =  logDisplace(altDiff,        crosshair.maxAltDiff,    maxPx);
+
+                const cx = hudCenterX + offsetX;
+                const cy = height / 2 + offsetY;
+
+                // Gate crosshair — circle with 4 tick lines extending inside and outside the rim.
+                // Colored by tracking quality while recording; white otherwise (matches the compass).
+                const tickInner = compassRadius * 0.55; // line starts inside the circle
+                const tickOuter = compassRadius * 1.2;  // line ends outside the circle
+                const gateColor = flightStatus === 'flying'
+                    ? QUALITY_COLORS[classifyQuality(crossTrackDist, altDiff, limits)]
+                    : 'rgba(255, 255, 255, 0.8)';
+                ctx.strokeStyle = gateColor;
+                ctx.lineWidth = 2;
+                // Circle
+                ctx.beginPath();
+                ctx.arc(cx, cy, compassRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                // Four ticks
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - tickOuter); ctx.lineTo(cx, cy - tickInner); // top
+                ctx.moveTo(cx, cy + tickInner); ctx.lineTo(cx, cy + tickOuter); // bottom
+                ctx.moveTo(cx - tickOuter, cy); ctx.lineTo(cx - tickInner, cy); // left
+                ctx.moveTo(cx + tickInner, cy); ctx.lineTo(cx + tickOuter, cy); // right
+                ctx.stroke();
+
+                // Draw lines connecting corners to a vanishing point?
+                // Vanishing point would be further offset?
+                // For simple visualization, just the gate moving relative to center is enough.
+
+                // Center Crosshair (Aircraft)
+                const crossSize = Math.floor(20 * scale_factor);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(hudCenterX - crossSize, height / 2);
+                ctx.lineTo(hudCenterX + crossSize, height / 2);
+                ctx.moveTo(hudCenterX, height / 2 - crossSize);
+                ctx.lineTo(hudCenterX, height / 2 + crossSize);
+                ctx.stroke();
+            }
 
             // Text info
             ctx.fillStyle = 'white';
@@ -301,7 +378,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
         return () => {
             window.removeEventListener('resize', render);
         }
-    }, [crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus]);
+    }, [crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus, instrument]);
 
     return (
         <canvas

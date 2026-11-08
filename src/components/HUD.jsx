@@ -12,7 +12,8 @@ const HUD = ({
     units = 'metric',
     limits,
     horizontalOffset = 0,
-    radius = 60
+    radius = 60,
+    showTarget = true // halo + arrows; off when the ILS dial draws its own needles
 }) => {
 
     // Thresholds from runtime settings
@@ -40,7 +41,7 @@ const HUD = ({
         }}>
 
             {/* Center Halo / Target */}
-            <div style={{
+            {showTarget && <div style={{
                 position: 'absolute',
                 top: '50%',
                 left: `calc(50% + ${horizontalOffset}px)`,
@@ -51,10 +52,10 @@ const HUD = ({
                 border: `4px solid ${haloColor}`,
                 boxShadow: `0 0 20px ${haloColor}`,
                 transition: 'all 0.3s ease'
-            }} />
+            }} />}
 
             {/* Arrows */}
-            <div style={{
+            {showTarget && <div style={{
                 position: 'absolute',
                 top: '50%',
                 left: `calc(50% + ${horizontalOffset}px)`,
@@ -78,7 +79,7 @@ const HUD = ({
                 <div /* Down */ style={{ gridColumn: 2, gridRow: 3, display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
                     {showDown && <Arrow direction="down" />}
                 </div>
-            </div>
+            </div>}
 
             <DistanceDisplay
                 distanceToStart={distanceToStart}

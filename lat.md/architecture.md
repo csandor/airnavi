@@ -14,14 +14,14 @@ Two `useEffect` loops run on every GPS fix: the auto-start check (see [[flight#A
 
 [[src/config.js#config]] holds every tuneable parameter and is the source of truth for defaults.
 
-The `limits`, `crosshair` and `dubins` groups, `summaryAutoCloseSeconds`, `gpsAltitudeDatum` and `useMissionTolerances` can be overridden at runtime from the Settings dialog ([[src/components/SettingsDialog.jsx#SettingsDialog]]). Overrides are persisted to `localStorage` under `runtimeSettings`; everything else is fixed at build time.
+The `limits`, `crosshair` and `dubins` groups, `summaryAutoCloseSeconds`, `gpsAltitudeDatum`, `useMissionTolerances` and `navInstrument` can be overridden at runtime from the Settings dialog ([[src/components/SettingsDialog.jsx#SettingsDialog]]). Overrides are persisted to `localStorage` under `runtimeSettings`; everything else is fixed at build time.
 
 ## Displays
 
 Three instruments render the current deviation. Each is a pure view over state that `App` computes.
 
 - [[src/components/HUD.jsx#HUD]] — numeric deviation display; its center halo is always white and does not reflect tracking quality.
-- [[src/components/VisualNav.jsx#VisualNav]] — canvas attitude compass with a gate ring that is coloured by [[src/utils/QualityUtils.js#classifyQuality]] while flying and white otherwise.
+- [[src/components/VisualNav.jsx#VisualNav]] — canvas attitude compass plus a right-hand instrument chosen by the `navInstrument` setting. `gate` draws a ring that moves toward the line, coloured by [[src/utils/QualityUtils.js#classifyQuality]] while flying and white otherwise. `ils` draws a fixed dial modelled on the legacy GreyBox panel: a vertical needle for cross-track and a horizontal one for vertical deviation, both pointing toward the line. Needle colours follow each axis' quality at all times, not only while flying. [[src/utils/IlsScale.js#deviationToDots]] scales each axis by its own effective limits (1 dot = green, 2 dots = yellow, then an exponential approach to 2.8 dots), so the inner zone means green on both axes; the `crosshair` settings only affect the gate. In `ils` mode the HUD hides its halo and arrows.
 - [[src/components/MiniMap.jsx#MiniMap]] and the lazy-loaded [[src/components/FullMap.jsx#FullMap]] — map overviews; see [[architecture#Offline Basemap]].
 
 ## GPS Sources
