@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { QUALITY_COLORS } from '../utils/QualityUtils';
 import { deviationToDots, axisQuality } from '../utils/IlsScale';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, showGauge = false, showMap = false, onLayout }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, showGauge = false, showMap = false, units = 'metric', onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -220,7 +220,8 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
                 ctx.font = `${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'top';
-                ctx.fillText(`1 dot: ↔ ${limits.green} m  ↕ ${limits.vertical_green} m`, x, y + faceR * 1.12 + fontSize * 0.4);
+                const fmt = (m) => units === 'imperial' ? `${Math.round(m * 3.28084)} ft` : `${m} m`;
+                ctx.fillText(`1 dot: ↔ ${fmt(limits.green)}  ↕ ${fmt(limits.vertical_green)}`, x, y + faceR * 1.12 + fontSize * 0.4);
             };
             drawIls(ilsX, cy, faceR);
 
@@ -410,7 +411,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
         return () => {
             window.removeEventListener('resize', render);
         }
-    }, [crossTrackDist, altDiff, heading, targetHeading, limits, showGauge, showMap]);
+    }, [crossTrackDist, altDiff, heading, targetHeading, limits, showGauge, showMap, units]);
 
     return (
         <canvas

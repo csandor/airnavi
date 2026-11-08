@@ -1,12 +1,18 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, lazy, Suspense } from 'react';
 import { calculateDistance, calculateAlongTrackDistance } from '../utils/GeoUtils';
 import { QUALITY_COLORS } from '../utils/QualityUtils';
+import { fitMercatorView } from '../utils/MiniMapProjection';
+
+// MapLibre is heavy: load the OSM basemap lazily, in its own chunk.
+const MiniMapBasemap = lazy(() => import('./MiniMapBasemap'));
 
 const DEFAULT_PATH_COLOR = 'rgba(255, 200, 0, 0.6)';
 
-const MiniMap = ({ currentLine, gpsData, direction, className, onClose, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
+const MiniMap = ({ currentLine, gpsData, direction, className, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
     const canvasRef = useRef(null);
     const [path, setPath] = useState([]);
+    const [basemapView, setBasemapView] = useState(null);
+    const [basemapReady, setBasemapReady] = useState(false);
 
     // Update path history
     useEffect(() => {
@@ -38,51 +44,23 @@ const MiniMap = ({ currentLine, gpsData, direction, className, onClose, flightSt
 
             ctx.clearRect(0, 0, width, height);
 
-            // Draw background
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            // Over the OSM basemap only a light dimming (keeps the overlay readable on the
+            // light map style); without it, the old dark panel background.
+            ctx.fillStyle = basemapReady ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.6)';
             ctx.fillRect(0, 0, width, height);
 
             if (!currentLine) return;
 
-            // Define bounds
             const start = direction === 'normal' ? currentLine.start : currentLine.end;
             const end = direction === 'normal' ? currentLine.end : currentLine.start;
 
-            let minLat = Math.min(start.lat, end.lat);
-            let maxLat = Math.max(start.lat, end.lat);
-            let minLon = Math.min(start.lon, end.lon);
-            let maxLon = Math.max(start.lon, end.lon);
-
-            // Include aircraft position in bounds
-            if (gpsData.lat !== 0) {
-                minLat = Math.min(minLat, gpsData.lat);
-                maxLat = Math.max(maxLat, gpsData.lat);
-                minLon = Math.min(minLon, gpsData.lon);
-                maxLon = Math.max(maxLon, gpsData.lon);
-            }
-
-            // Add padding (20%)
-            const latRange = maxLat - minLat || 0.01;
-            const lonRange = maxLon - minLon || 0.01;
-            const paddingLat = latRange * 0.2;
-            const paddingLon = lonRange * 0.2;
-
-            minLat -= paddingLat;
-            maxLat += paddingLat;
-            minLon -= paddingLon;
-            maxLon += paddingLon;
-
-            // Transform Function
-            const toX = (lon) => {
-                return ((lon - minLon) / (maxLon - minLon)) * width;
-            };
-            const toY = (lat) => {
-                // Lat increases upwards, but canvas Y increases downwards
-                return height - ((lat - minLat) / (maxLat - minLat)) * height;
-            };
+            // Uniform Web Mercator fit of the line (and aircraft) — same projection as the basemap
+            const fitPoints = [start, end, ...(gpsData.lat !== 0 ? [gpsData] : [])];
+            const { toX, toY, view } = fitMercatorView(fitPoints, width, height);
+            setBasemapView(prev => (prev && prev.lon === view.lon && prev.lat === view.lat && prev.zoom === view.zoom) ? prev : view);
 
             // Draw Flight Line
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.strokeStyle = basemapReady ? '#00e5ff' : 'rgba(255, 255, 255, 0.5)';
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
@@ -157,47 +135,28 @@ const MiniMap = ({ currentLine, gpsData, direction, className, onClose, flightSt
 
                 ctx.restore();
             }
+
+            if (basemapReady) {
+                // OSM attribution (the basemap's own control is off at this size)
+                ctx.font = '9px Arial';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fillText('© OpenStreetMap', width - 3, height - 2);
+            }
         };
 
         render();
         window.addEventListener('resize', render);
         return () => window.removeEventListener('resize', render);
-    }, [currentLine, gpsData, path, direction, flightStatus, chunkQuality, qualitySegmentLength]);
+    }, [currentLine, gpsData, path, direction, flightStatus, chunkQuality, qualitySegmentLength, basemapReady]);
 
     return (
         <div className={className || ''} style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
-            <canvas ref={canvasRef} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', gap: '4px', pointerEvents: 'auto' }}>
-                {onClose && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onClose();
-                        }}
-                        style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: 'rgba(0, 0, 0, 0.6)',
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            lineHeight: '1',
-                            padding: 0,
-                            transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.background = 'rgba(0, 0, 0, 0.8)'}
-                        onMouseLeave={(e) => e.target.style.background = 'rgba(0, 0, 0, 0.6)'}
-                        title="Close MiniMap"
-                    >
-                        ×
-                    </button>
-                )}
-            </div>
+            <Suspense fallback={null}>
+                <MiniMapBasemap view={basemapView} onReady={setBasemapReady} />
+            </Suspense>
+            <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
         </div>
     );
 };

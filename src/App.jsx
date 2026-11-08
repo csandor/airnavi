@@ -134,7 +134,7 @@ function App() {
     const [flightStatus, setFlightStatus] = useState('idle')
     const [simulating, setSimulating] = useState(false)
     const [notification, setNotification] = useState(null) // { message, type }
-    const [units, setUnits] = useState('metric'); // 'metric' or 'imperial'
+    const [units, setUnits] = useState('imperial'); // 'metric' or 'imperial'
     const [showSummary, setShowSummary] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [runtimeSettings, setRuntimeSettings] = useState(loadRuntimeSettings);
@@ -984,6 +984,7 @@ function App() {
                             limits={limits}
                             showGauge={showLineGauge}
                             showMap={showMiniMap}
+                            units={units}
                             onLayout={handlePanelLayout}
                         />
                         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%' }}>
@@ -1001,7 +1002,6 @@ function App() {
                                     currentLine={currentLine}
                                     gpsData={gpsData}
                                     direction={direction}
-                                    onClose={toggleMiniMap}
                                     flightStatus={flightStatus}
                                     chunkQuality={Object.fromEntries(chunkQuality.current)}
                                     qualitySegmentLength={config.qualitySegmentLength}

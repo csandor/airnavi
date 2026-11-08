@@ -8,7 +8,7 @@ const NOT_RECORDING_COLOR = 'rgba(80, 80, 80, 0.6)';
 // Vertical gauge symbolizing the selected flight line: fills from the bottom as the
 // aircraft progresses along-track, colored per-chunk by the same tracking quality
 // ('green'/'yellow'/'red') used for the flown-track rendering on the maps.
-const LineGauge = ({ currentLine, direction, gpsData, flightStatus, chunkQuality, qualitySegmentLength = 10, onClose }) => {
+const LineGauge = ({ currentLine, direction, gpsData, flightStatus, chunkQuality, qualitySegmentLength = 10 }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -78,37 +78,6 @@ const LineGauge = ({ currentLine, direction, gpsData, flightStatus, chunkQuality
     return (
         <div style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', gap: '4px', pointerEvents: 'auto' }}>
-                {onClose && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onClose();
-                        }}
-                        style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: 'rgba(0, 0, 0, 0.6)',
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            lineHeight: '1',
-                            padding: 0,
-                            transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.background = 'rgba(0, 0, 0, 0.8)'}
-                        onMouseLeave={(e) => e.target.style.background = 'rgba(0, 0, 0, 0.6)'}
-                        title="Close Line Gauge"
-                    >
-                        ×
-                    </button>
-                )}
-            </div>
         </div>
     );
 };

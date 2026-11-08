@@ -27,7 +27,7 @@ Three instruments render the current deviation. Each is a pure view over state t
 
 ### Instrument Panel
 
-The flight view is one fixed row of bezelled instruments: line gauge, compass, ILS gauge, minimap, left to right. Nothing is draggable.
+The flight view is one fixed row of bezelled instruments: line gauge, compass, ILS gauge, minimap, left to right. Nothing is draggable or closable; the gauge and minimap are turned on or off in Settings.
 
 [[src/components/VisualNav.jsx#VisualNav]] lays out the row, sizing everything from the bezel half-height so it fills the width or the height above the numeric panel. The compass, ILS gauge and minimap are equal squares; the gauge bezel is narrow. It draws all bezels, including rectangular ones for the gauge and map. Through `onLayout` it reports the gauge and map face rectangles, and `App` places the DOM components exactly over those faces. Hiding the gauge or minimap in Settings drops its slot and the row re-centres.
 
@@ -42,6 +42,10 @@ Browser `coords.altitude` is WGS-84 ellipsoidal on Android but sea-level (EGM200
 The full map uses MapLibre GL with a PMTiles basemap of Hungary, stored in the browser's Origin Private File System (OPFS) rather than precached by the service worker.
 
 [[src/utils/OsmAssets.js#ensureOsmAssets]] downloads `public/osm/osm.zip` (built by `npm run build:osm-package` from `osm-assets/`) on first use and unpacks it into OPFS. The archive is ~250 MB, so the PWA config deliberately excludes it from Workbox precaching. MapLibre itself is lazy-loaded with `FullMap` to keep the initial bundle small.
+
+[[src/utils/OsmStyle.js#loadOsmStyle]] holds the shared MapLibre plumbing (PMTiles and OPFS asset protocols, style loading) for both maps; only lazy components import it. Opening the full map triggers the download. The minimap's basemap ([[src/components/MiniMapBasemap.jsx#MiniMapBasemap]], also lazy) calls it with `download: false` and shows nothing until the package is installed.
+
+The minimap projects with Web Mercator ([[src/utils/MiniMapProjection.js#fitMercatorView]]): it fits the line and aircraft with 20% padding (at least 500 m across) and hands the basemap the matching centre and zoom (`zoom = log2(px per Mercator unit / 512)`). That way its canvas overlay of line, endpoints, track and aircraft lines up exactly with the non-interactive map. With the basemap showing, the canvas only dims it slightly, draws the line cyan, and prints the OpenStreetMap credit itself.
 
 ## Build and PWA
 

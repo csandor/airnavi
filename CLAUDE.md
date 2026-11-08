@@ -53,10 +53,11 @@ This project keeps all agent memory in **bd** and **lat.md** — not in Claude C
 ### Components
 - `HUD.jsx` — numeric deviation panel (wraps `DistanceDisplay`) under the instruments
 - `VisualNav.jsx` — canvas with two classic bezel instruments: heading compass + ILS gauge (vertical needle = cross-track, horizontal = vertical deviation; `IlsScale.js`: 1 dot = green limit, 2 dots = yellow; needles coloured by per-axis quality)
-- `MiniMap.jsx` / `LineGauge.jsx` — map overview / line-progress bar, docked (not draggable) in the instrument row; `VisualNav` draws their bezels and reports the face rectangles App overlays them on
+- `MiniMap.jsx` / `LineGauge.jsx` — map overview / line-progress bar, docked (not draggable or closable; toggled in Settings) in the instrument row; `VisualNav` draws their bezels and reports the face rectangles App overlays them on. The minimap is Web Mercator with the offline OSM basemap underneath (`MiniMapBasemap.jsx`, lazy; only if the OPFS package is already installed)
 - `LineSelector.jsx` — line picker + completed lines restore; displays lines in row order when one applies (see [Row Order](#row-order))
 - `SummaryDialog.jsx` — post-flight summary; auto-close delay comes from `runtimeSettings.summaryAutoCloseSeconds`, not `config.js` directly
 - `Toast.jsx` — transient notifications
+- Units default to **imperial** (`units` state in App, not persisted); the ILS legend follows them
 
 ## Data Flow
 1. KML loaded → `parseKML()` → `applyGeoidUndulation()` → `lines` state (App.jsx). TXT/zip loaded → `parseTXT()`/`parseZipMission()` → `lines` + `rowOrders` state (no undulation — TXT altitudes are already ellipsoidal)
