@@ -1,3 +1,5 @@
+> **Historical:** the original project brief (written for an Android app). The app has since evolved into a React PWA with TXT/zip missions, sections, row order, Dubins guidance, offline maps, etc. — see `README.md` and `CLAUDE.md` for current behavior.
+
 create an android app that helps to visually navigate a pilot through straight flight lines.
 - input is a 3D kml file with flight lines with start and end points and elevation of the lines, and their sequence number
 based on the gps position acquired from the system the app should indicate the position of the aircraft relative to the flight lines

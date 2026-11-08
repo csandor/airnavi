@@ -1,4 +1,4 @@
-import { toRad, toDeg, EARTH_RADIUS_KM } from './GeoUtils';
+import { toRad, EARTH_RADIUS_KM } from './GeoUtils';
 
 // Converts a lat/lon point to local flat-earth XY meters (equirectangular),
 // centered on `origin`. X = east, Y = north.
@@ -26,7 +26,6 @@ export const localXYToLatLon = (origin, x, y) => {
 // Local convention: headings are compass degrees (0 = north, 90 = east),
 // converted to standard math radians (0 = east, CCW positive) for the solver.
 const headingToMathRad = (headingDeg) => toRad(90 - headingDeg);
-const mathRadToHeading = (rad) => (90 - toDeg(rad) + 360) % 360;
 
 const mod2pi = (theta) => {
     let t = theta % (2 * Math.PI);

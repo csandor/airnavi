@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { calculateDistance, calculateBearing, calculateAlongTrackDistance } from '../utils/GeoUtils';
+import { calculateDistance, calculateAlongTrackDistance } from '../utils/GeoUtils';
 import { QUALITY_COLORS } from '../utils/QualityUtils';
 
 const DEFAULT_PATH_COLOR = 'rgba(255, 200, 0, 0.6)';

@@ -59,25 +59,9 @@ export const calculateAlongTrackDistance = (point, lineStart, lineEnd) => {
     const theta13 = toRad(calculateBearing(lineStart.lat, lineStart.lon, point.lat, point.lon));
     const theta12 = toRad(calculateBearing(lineStart.lat, lineStart.lon, lineEnd.lat, lineEnd.lon));
 
-    const dAt = Math.acos(Math.cos(d13 / EARTH_RADIUS_KM) / Math.cos(Math.asin(Math.sin(d13 / EARTH_RADIUS_KM) * Math.sin(theta13 - theta12)))) * EARTH_RADIUS_KM;
-
-    // Simple projection logic approximation for short distances if above formula has issues with edge cases,
-    // but cross-track / along-track usually follows standard navigation formulas.
-    // Let's use simpler spherical trigonometry:
-    // dAt = asin( sin(d13) * cos(theta13-theta12) ) * R (approx)
-    // Precise: tan(dAt) = tan(d13) * cos(theta13 - theta12)
-
-    // actually, simpler logic for short distances (planar approximation) might be enough, but let's stick to sphere.
-    // Cross-track formula above is correct.
-    // Along-track:
-    const d12 = calculateDistance(lineStart.lat, lineStart.lon, lineEnd.lat, lineEnd.lon);
-
-    // Project point to line
-    // We can just take distance to start and use the angle.
-    // Distance from start to point * cos(angle diff)
-    const angleDiff = theta13 - theta12;
-    const distToPoint = calculateDistance(lineStart.lat, lineStart.lon, point.lat, point.lon);
-    return distToPoint * Math.cos(angleDiff) * 1000; // meters
+    // Planar approximation (fine for survey-line lengths): project the start->point
+    // distance onto the line bearing.
+    return d13 * Math.cos(theta13 - theta12) * 1000; // meters
 };
 
 /**

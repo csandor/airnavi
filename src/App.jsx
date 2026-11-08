@@ -612,7 +612,6 @@ function App() {
         const start = direction === 'normal' ? currentLine.start : currentLine.end;
         const end = direction === 'normal' ? currentLine.end : currentLine.start;
         const totalLen = calculateDistance(start.lat, start.lon, end.lat, end.lon) * 1000;
-        const alongTrack = calculateAlongTrackDistance(gpsData, start, end);
 
         // Completion: Green Coverage / Total Length
         const completionPct = Math.min(100, (greenCoverage.current.size / totalLen) * 100);

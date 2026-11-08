@@ -27,7 +27,7 @@ const SummaryDialog = ({ session, onKeep, onReject, autoCloseSeconds = config.su
         }, 1000);
 
         return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [isSuccess, autoCloseSeconds]); // intentionally omit callbacks — stabilised via refs above
 
     return (

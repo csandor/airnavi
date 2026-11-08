@@ -18,7 +18,9 @@ npm run dev       # dev server at http://localhost:5173
 npm run build     # production build -> dist/
 npm run preview   # serve the production build locally
 npm run deploy    # build + publish to GitHub Pages (gh-pages -d dist)
+npm run lint      # ESLint (flat config in eslint.config.js)
 ```
+`public/kml/` (bundled sample missions) is gitignored; the build creates it with an empty `manifest.json` if it's missing, so a fresh checkout still builds — just without the samples.
 
 ## Architecture
 
@@ -87,7 +89,7 @@ Unzips (via `fflate`'s `unzipSync`) an archive containing several single-section
 - Each file's own row-order comment, if present, becomes `rowOrders[thatSection]`.
 - Returns `{lines, rowOrders}` — same shape `App.jsx` expects from `parseFlightFile()`.
 - Persisted to `localStorage` as base64 under `customMissionZip` (binary, unlike the plain-text `customKml` key) and restored with priority over `customKml` on reload.
-- Test fixture: `test-kml/kuldetes_M3_3cm_2026.zip` (43 sections) — see [Test Files](#test-files).
+- Test fixture: `public/kml/kuldetes_M3_3cm_2026.zip` (43 sections) — see [Test Files](#test-files).
 
 ## Altitude Datum
 - Browser `coords.altitude` = WGS-84 ellipsoidal
@@ -112,12 +114,19 @@ See `src/config.js` directly for current values — treat this file as the sourc
 `flightLogger.downloadCSV(missionFileName)` and `downloadKMZ(history, missionFileName)` (`KMZExporter.js`) both name their output `flight_logs_<mission name>_<date>_<time>.csv`/`.kmz` (`ExportFileName.js`'s `buildExportFileName()`, shared by both). Row/field order: **Section**, **Line** (renamed from `LineID`/`Line ID`), Date, Start Time, End Time, Duration (s), Direction, Completion (%), Max X-Track (m), Max Alt Diff (m), Max Speed (km/h), Max Hdg Diff (deg). The KMZ's placemark `ExtendedData` carries the same fields.
 
 ## Development Workflow
-Do not perform browser-based testing of this app (no launching a browser, driving the UI, or taking screenshots). Verify changes via build (`npm run build`), unit-level checks (e.g. running parser/util functions directly with Node), and code review instead.
+Do not perform browser-based testing of this app (no launching a browser, driving the UI, or taking screenshots). Verify changes via build (`npm run build`), unit-level checks (e.g. running parser/util functions directly with Node), and code review instead. The sources use extensionless imports (`'./TxtParser'`), so plain `node` can't import them — load them through Vite instead: `const s = await createServer({server:{middlewareMode:true}, appType:'custom'}); const m = await s.ssrLoadModule('/src/utils/TxtParser.js')`.
 
 ## Test Files
-Located in `test-kml/` (excluded from build). Notable files:
-- `Sóskút_teszt_repvonalak.kml` — uses `ID1` as seq field (first SimpleData), 250 m MSL altitude
-- `Erdokurt.kml` — Google Earth export, seq 1–4 added manually, 160 m MSL altitude
+Both folders are gitignored. Notable files:
+
+`test-kml/` (not bundled):
 - `lines-err-*.kml` — intentionally broken files for testing parser error handling
 - `m3/` — a real multi-section survey export unpacked: one `mis###.kml`/`mis###.txt`/`mis###_photo_coords.txt` triplet per section, each `mis###.txt` carrying its own row-order comment (data rows are 0-based; the row-order comment already uses the post-shift 1-based numbers, so it happens to still validate — see [Row Order](#row-order) for what happens when the two genuinely disagree)
-- `kuldetes_M3_3cm_2026.zip` — the same `m3/` mission still zipped, for testing `ZipMissionParser.js` end-to-end (43 sections, 216 lines)
+- `vernova/` — a single-section `mis001` export (kml/txt/photo coords, plus `mis001_sections.txt`)
+
+`public/kml/` (bundled sample missions, offered in the app's picker via the auto-generated `manifest.json`):
+- `Sóskút_teszt_repvonalak_Z.kml` — uses `ID1` as seq field (first SimpleData), 500 m MSL altitude
+- `Erdokurt.kml` — Google Earth export, seq 1–4 added manually, 160 m MSL altitude
+- `kuldetes_M3_3cm_2026.zip` — the `m3/` mission still zipped, for testing `ZipMissionParser.js` end-to-end (43 sections, 216 lines)
+- `mis001-vernova.txt` (8 lines, with row order) / `mis001-vernova-sections.txt` (8 lines, no row order)
+- `BPXITeszt_repvonalak_extra.kml`, `lines-reti-csik.kml`

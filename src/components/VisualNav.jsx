@@ -1,13 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 import { classifyQuality, QUALITY_COLORS } from '../utils/QualityUtils';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, attitude, flightStatus, onLayout }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus, onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
-        let animationFrameId;
 
         const render = () => {
             const width = canvas.width = canvas.offsetWidth;
@@ -248,7 +247,6 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
                     // Here x = shift (in the rotated targetRad context)
                     const sRad = Math.sqrt(Math.max(0, radius * radius - shift * shift));
                     const yTop = -sRad;
-                    const yBottom = sRad;
 
                     // 1. Draw The Line (Full diameter, not clipped)
                     ctx.translate(shift, 0);

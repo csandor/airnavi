@@ -11,6 +11,9 @@ function kmlManifestPlugin() {
     const manifestPath = path.join(kmlDir, 'manifest.json')
 
     const writeManifest = () => {
+        // public/kml/ is gitignored, so a fresh checkout won't have it — create it
+        // (yielding an empty manifest) rather than failing the build.
+        fs.mkdirSync(kmlDir, { recursive: true })
         const files = fs.readdirSync(kmlDir)
             .filter(f => /\.(kml|txt|zip)$/i.test(f))
             .sort()

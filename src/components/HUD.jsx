@@ -1,8 +1,5 @@
-import React, { useMemo } from 'react';
-import { calculateBearing } from '../utils/GeoUtils';
+import React from 'react';
 import DistanceDisplay from './DistanceDisplay';
-
-const ARROW_SIZE = 60;
 
 const HUD = ({
     crossTrackDist,
@@ -10,8 +7,6 @@ const HUD = ({
     distanceToStart,
     distLabel = "Dist",
     speed,
-    heading,
-    targetHeading,
     headingDiff,
     className,
     units = 'metric',
@@ -22,9 +17,7 @@ const HUD = ({
 
     // Thresholds from runtime settings
     const greenLimit = limits.green;
-    const yellowLimit = limits.yellow;
     const vGreenLimit = limits.vertical_green;
-    const vYellowLimit = limits.vertical_yellow;
 
     const haloColor = 'rgba(255, 255, 255, 0.8)';
 
