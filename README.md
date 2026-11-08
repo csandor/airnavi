@@ -47,11 +47,11 @@ Output goes to `dist/`. The build includes the PWA service worker so the app wor
 npm run preview
 ```
 
-### Deploy (viamap FTP)
+### Deploy (viamap)
 ```
 npm run deploy
 ```
-Runs the build and uploads `dist/` over FTP to `public_html/airnavi` on ftp.viamap.hu, served at https://new.viamap.hu/airnavi/. Credentials come from `FTP_*` environment variables or the gitignored `.vscode/ftp-sync.json`. The ~250 MB offline map package is only re-uploaded when its size changes.
+Runs the build and rsyncs `dist/` over SSH (host alias `viamap` in `~/.ssh/config`) to `~/new.viamap.hu/airnavi/`, served at https://new.viamap.hu/airnavi/. `index.html` is copied last; nothing on the server is deleted. rsync only transfers changed files, so the ~250 MB offline map package is not re-sent unless it changed.
 
 ---
 

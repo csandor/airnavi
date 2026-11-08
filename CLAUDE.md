@@ -17,7 +17,7 @@ Each script bumps `package.json`, commits with `chore: bump version to X.Y.Z`, a
 npm run dev       # dev server at http://localhost:5173
 npm run build     # production build -> dist/
 npm run preview   # serve the production build locally
-npm run deploy    # build + FTP upload of dist/ to viamap (https://new.viamap.hu/airnavi/), see scripts/deploy-ftp.js
+npm run deploy    # build + rsync dist/ over ssh to viamap:~/new.viamap.hu/airnavi/ (https://new.viamap.hu/airnavi/)
 npm run lint      # ESLint (flat config in eslint.config.js)
 ```
 `public/kml/` (bundled sample missions) is gitignored; the build creates it with an empty `manifest.json` if it's missing, so a fresh checkout still builds — just without the samples.

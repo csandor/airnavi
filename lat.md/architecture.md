@@ -51,6 +51,6 @@ The minimap projects with Web Mercator ([[src/utils/MiniMapProjection.js#fitMerc
 
 [[vite.config.js]] builds the app with `base: './'` so it runs from any sub-path, and generates the service worker via `vite-plugin-pwa`.
 
-The only deploy target is the viamap web host (https://new.viamap.hu/airnavi/). `npm run deploy` builds, then [[scripts/deploy-ftp.js]] uploads `dist/` over FTP. Settings come from `FTP_*` env vars or the gitignored `.vscode/ftp-sync.json`. `index.html` goes last, nothing remote is deleted, and `osm/osm.zip` is skipped when the remote size matches. GitHub Pages is no longer used.
+The only deploy target is the viamap web host (https://new.viamap.hu/airnavi/). `npm run deploy` builds, then rsyncs `dist/` over SSH (host alias `viamap`) to `~/new.viamap.hu/airnavi/`. `index.html` is copied in a second pass so a half-finished upload never references missing assets. Nothing remote is deleted, and rsync's change detection keeps the ~250 MB `osm/osm.zip` from being re-sent. GitHub Pages is no longer used.
 
 A small Vite plugin writes `public/kml/manifest.json` listing the bundled sample missions so the app's picker needs no hardcoded list. `public/kml/` is gitignored; the plugin creates it when missing so a fresh checkout still builds, with an empty sample list.
