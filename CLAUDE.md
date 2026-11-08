@@ -19,6 +19,7 @@ npm run build     # production build -> dist/
 npm run preview   # serve the production build locally
 npm run deploy    # build + rsync dist/ over ssh to viamap:~/new.viamap.hu/airnavi/ (https://new.viamap.hu/airnavi/)
 npm run lint      # ESLint (flat config in eslint.config.js)
+npm test          # Vitest unit tests (src/utils/*.test.js); npm run test:watch to watch
 ```
 `public/kml/` (bundled sample missions) is gitignored; the build creates it with an empty `manifest.json` if it's missing, so a fresh checkout still builds — just without the samples.
 
@@ -131,7 +132,7 @@ See `src/config.js` directly for current values — treat this file as the sourc
 `flightLogger.downloadCSV(missionFileName)` and `downloadKMZ(history, missionFileName)` (`KMZExporter.js`) both name their output `flight_logs_<mission name>_<date>_<time>.csv`/`.kmz` (`ExportFileName.js`'s `buildExportFileName()`, shared by both). Row/field order: **Section**, **Line** (renamed from `LineID`/`Line ID`), Date, Start Time, End Time, Duration (s), Direction, Completion (%), Max X-Track (m), Max Alt Diff (m), Max Speed (km/h), Max Hdg Diff (deg). The KMZ's placemark `ExtendedData` carries the same fields.
 
 ## Development Workflow
-Do not perform browser-based testing of this app (no launching a browser, driving the UI, or taking screenshots). Verify changes via build (`npm run build`), unit-level checks (e.g. running parser/util functions directly with Node), and code review instead. The sources use extensionless imports (`'./TxtParser'`), so plain `node` can't import them — load them through Vite instead: `const s = await createServer({server:{middlewareMode:true}, appType:'custom'}); const m = await s.ssrLoadModule('/src/utils/TxtParser.js')`.
+Do not perform browser-based testing of this app (no launching a browser, driving the UI, or taking screenshots). Verify changes via build (`npm run build`), `npm test`, unit-level checks (e.g. running parser/util functions directly with Node), and code review instead. The sources use extensionless imports (`'./TxtParser'`), so plain `node` can't import them — load them through Vite instead: `const s = await createServer({server:{middlewareMode:true}, appType:'custom'}); const m = await s.ssrLoadModule('/src/utils/TxtParser.js')`.
 
 ## Test Files
 Both folders are gitignored. Notable files:

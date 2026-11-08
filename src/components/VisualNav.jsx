@@ -15,9 +15,27 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
 
             ctx.clearRect(0, 0, width, height);
 
-            // Horizon (Artificial)
+            // --- Panel layout: one row of bezelled instruments, centred above the data panel ---
+            // Left to right: line gauge (optional), compass, ILS gauge, minimap (optional).
+            // Sizes are in units of B, the bezel half-height: round instruments and the map
+            // are 2B wide, the gauge bezel GAUGE_W * B, with GAP * B between bezels.
+            const bottomReserved = 90; // numeric data panel (~70px) + 20px margin
+            const padding = 16;
+            const GAUGE_W = 0.55;
+            const GAP = 0.2;
+            const slots = [...(showGauge ? ['gauge'] : []), 'compass', 'ils', ...(showMap ? ['map'] : [])];
+            const unitsWide = slots.reduce((sum, k) => sum + (k === 'gauge' ? GAUGE_W : 2), 0) + GAP * (slots.length - 1);
+            const usableHeight = height - bottomReserved - padding * 2;
+            // Leave ~0.2B under the bezels for the ILS scale legend
+            const B = Math.max(10, Math.floor(Math.min(usableHeight / 2.2, (width - padding * 2) / unitsWide)));
+            const faceR = B / 1.12;          // round face radius (bezel half-size = 1.12 * face)
+            const faceInset = B - faceR;     // bezel border width, shared by the rectangular faces
+            // Vertically centred in the space above the data panel (legend included)
+            const cy = padding + Math.max(B, (usableHeight - 0.2 * B) / 2);
+
+            // Horizon (Artificial), placed on the instruments' centre line.
             // Roll would rotate this line. For now assume level flight.
-            const horizonY = height / 2;
+            const horizonY = cy;
 
             ctx.fillStyle = '#87CEEB'; // Sky (Day) or Stars (Night)
             // Use gradient for sky
@@ -42,24 +60,6 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
             ctx.lineTo(width, horizonY);
             ctx.stroke();
 
-            // --- Panel layout: one row of bezelled instruments, centred above the data panel ---
-            // Left to right: line gauge (optional), compass, ILS gauge, minimap (optional).
-            // Sizes are in units of B, the bezel half-height: round instruments and the map
-            // are 2B wide, the gauge bezel GAUGE_W * B, with GAP * B between bezels.
-            const bottomReserved = 90; // numeric data panel (~70px) + 20px margin
-            const padding = 16;
-            const GAUGE_W = 0.55;
-            const GAP = 0.2;
-            const slots = [...(showGauge ? ['gauge'] : []), 'compass', 'ils', ...(showMap ? ['map'] : [])];
-            const unitsWide = slots.reduce((sum, k) => sum + (k === 'gauge' ? GAUGE_W : 2), 0) + GAP * (slots.length - 1);
-            const usableHeight = height - bottomReserved - padding * 2;
-            // Leave ~0.2B under the bezels for the ILS scale legend
-            const B = Math.max(10, Math.floor(Math.min(usableHeight / 2.2, (width - padding * 2) / unitsWide)));
-            const faceR = B / 1.12;          // round face radius (bezel half-size = 1.12 * face)
-            const faceInset = B - faceR;     // bezel border width, shared by the rectangular faces
-            // Vertically centred in the space above the data panel (legend included)
-            const cy = padding + Math.max(B, (usableHeight - 0.2 * B) / 2);
-
             const slotX = {};
             let cursor = (width - unitsWide * B) / 2;
             slots.forEach(k => {
@@ -69,11 +69,17 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
             });
             const compassX = slotX.compass.left + B;
             const ilsX = slotX.ils.left + B;
+            // Outer corner radius of each rectangular bezel; the face corner is 0.3 of it
+            const bezelCorner = {
+                gauge: Math.min(B * 0.15, GAUGE_W * B * 0.3),
+                map: B * 0.27,
+            };
             const faceRect = (k) => slotX[k] && {
                 x: slotX[k].left + faceInset,
                 y: cy - B + faceInset,
                 w: slotX[k].w - faceInset * 2,
                 h: 2 * B - faceInset * 2,
+                r: bezelCorner[k] * 0.3, // so the DOM overlay clips to the drawn face
             };
             const gaugeFace = faceRect('gauge') || null;
             const mapFace = faceRect('map') || null;
@@ -402,8 +408,8 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
             drawCompass(compassX, cy, faceR);
 
             // Bezels for the DOM-rendered instruments; their content is overlaid by the parent
-            if (gaugeFace) drawRectBezel(slotX.gauge.left, cy - B, slotX.gauge.w, 2 * B, faceInset, Math.min(B * 0.15, slotX.gauge.w * 0.3));
-            if (mapFace) drawRectBezel(slotX.map.left, cy - B, slotX.map.w, 2 * B, faceInset, B * 0.27);
+            if (gaugeFace) drawRectBezel(slotX.gauge.left, cy - B, slotX.gauge.w, 2 * B, faceInset, bezelCorner.gauge);
+            if (mapFace) drawRectBezel(slotX.map.left, cy - B, slotX.map.w, 2 * B, faceInset, bezelCorner.map);
         };
 
         render();

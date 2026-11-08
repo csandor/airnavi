@@ -42,6 +42,15 @@ export default defineConfig({
         // FullMap.jsx lazy-loads maplibre-gl, which alone exceeds this limit;
         // it's deferred until the user opens the map view, not part of the initial load.
         chunkSizeWarningLimit: 1100,
+        rollupOptions: {
+            output: {
+                // MapLibre's worker (imported with ?url in OsmStyle.js) ships as .mjs; emit it
+                // as .js so any web server sends a JavaScript MIME type, which module workers require.
+                assetFileNames: (asset) => asset.names?.[0]?.endsWith('.mjs')
+                    ? 'assets/[name]-[hash].js'
+                    : 'assets/[name]-[hash][extname]',
+            },
+        },
     },
     plugins: [
         kmlManifestPlugin(),

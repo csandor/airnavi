@@ -1,4 +1,7 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+// MapLibre v6 loads its worker from `./maplibre-gl-worker.mjs` next to its own module,
+// which doesn't survive bundling; emit the worker as an asset and point MapLibre at it.
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { Protocol, PMTiles, FileSource } from 'pmtiles';
 import config from '../config';
 import { readOsmAsset, ensureOsmAssets, hasOsmAssets } from './OsmAssets';
@@ -6,6 +9,8 @@ import { readOsmAsset, ensureOsmAssets, hasOsmAssets } from './OsmAssets';
 // MapLibre plumbing for the offline OSM basemap, shared by FullMap and the minimap's
 // basemap. Imports maplibre-gl, so only lazy-loaded components should import this module
 // (it would otherwise pull MapLibre into the main bundle).
+
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 const pmtilesProtocol = new Protocol();
 maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);

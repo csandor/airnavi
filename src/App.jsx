@@ -114,8 +114,10 @@ const faceStyle = (r) => ({
     width: `${r.w}px`,
     height: `${r.h}px`,
     zIndex: 20,
-    borderRadius: '4px',
+    borderRadius: `${r.r ?? 4}px`, // matches the face corner VisualNav draws
     overflow: 'hidden',
+    // WebKit doesn't clip composited children (the basemap's WebGL canvas) by border-radius alone
+    clipPath: `inset(0 round ${r.r ?? 4}px)`,
 });
 
 function App() {
