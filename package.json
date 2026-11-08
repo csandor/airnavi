@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
+    "deploy": "node -e \"require('fs').rmSync('dist/osm/osm.zip',{force:true})\" && gh-pages -d dist",
     "build:osm-package": "node scripts/build-osm-package.js",
     "version:patch": "npm version patch --no-git-tag-version && git add package.json package-lock.json && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\")",
     "version:minor": "npm version minor --no-git-tag-version && git add package.json package-lock.json && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\")",
