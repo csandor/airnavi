@@ -1,21 +1,32 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
+    "SessionStart": [
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "lat hook claude UserPromptSubmit"
+            "command": "bd prime --hook-json",
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": ""
       }
     ],
     "Stop": [
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "lat hook claude Stop"
+            "command": "lat hook claude Stop",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "lat hook claude UserPromptSubmit",
+            "type": "command"
           }
         ]
       }
