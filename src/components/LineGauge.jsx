@@ -76,7 +76,7 @@ const LineGauge = ({ currentLine, direction, gpsData, flightStatus, chunkQuality
     }, [currentLine, direction, gpsData, flightStatus, chunkQuality, qualitySegmentLength]);
 
     return (
-        <div className="glass-panel" style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
+        <div style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', gap: '4px', pointerEvents: 'auto' }}>
                 {onClose && (

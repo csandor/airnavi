@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { QUALITY_COLORS } from '../utils/QualityUtils';
 import { deviationToDots, axisQuality } from '../utils/IlsScale';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, onLayout }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, showGauge = false, showMap = false, onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -42,29 +42,44 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, on
             ctx.lineTo(width, horizonY);
             ctx.stroke();
 
-            // --- Dynamic sizing: fill available space without overlapping bottom data panel ---
-            // Bottom data panel is ~70px tall + 20px bottom margin = 90px reserved
-            const bottomReserved = 90;
+            // --- Panel layout: one row of bezelled instruments, centred above the data panel ---
+            // Left to right: line gauge (optional), compass, ILS gauge, minimap (optional).
+            // Sizes are in units of B, the bezel half-height: round instruments and the map
+            // are 2B wide, the gauge bezel GAUGE_W * B, with GAP * B between bezels.
+            const bottomReserved = 90; // numeric data panel (~70px) + 20px margin
             const padding = 16;
+            const GAUGE_W = 0.55;
+            const GAP = 0.2;
+            const slots = [...(showGauge ? ['gauge'] : []), 'compass', 'ils', ...(showMap ? ['map'] : [])];
+            const unitsWide = slots.reduce((sum, k) => sum + (k === 'gauge' ? GAUGE_W : 2), 0) + GAP * (slots.length - 1);
             const usableHeight = height - bottomReserved - padding * 2;
-            const maxRadiusFromHeight = usableHeight / 2;
+            // Leave ~0.2B under the bezels for the ILS scale legend
+            const B = Math.max(10, Math.floor(Math.min(usableHeight / 2.2, (width - padding * 2) / unitsWide)));
+            const faceR = B / 1.12;          // round face radius (bezel half-size = 1.12 * face)
+            const faceInset = B - faceR;     // bezel border width, shared by the rectangular faces
+            // Vertically centred in the space above the data panel (legend included)
+            const cy = padding + Math.max(B, (usableHeight - 0.2 * B) / 2);
 
-            // Both instruments are the same radius; spacing between their edges = one diameter
-            const BASE_RADIUS = 72;
-            const BASE_SPACING = BASE_RADIUS; // gap between the two instruments = one radius
-            const BASE_TOTAL_WIDTH = BASE_RADIUS * 2 + BASE_SPACING + BASE_RADIUS * 2;
+            const slotX = {};
+            let cursor = (width - unitsWide * B) / 2;
+            slots.forEach(k => {
+                const w = (k === 'gauge' ? GAUGE_W : 2) * B;
+                slotX[k] = { left: cursor, w };
+                cursor += w + GAP * B;
+            });
+            const compassX = slotX.compass.left + B;
+            const ilsX = slotX.ils.left + B;
+            const faceRect = (k) => slotX[k] && {
+                x: slotX[k].left + faceInset,
+                y: cy - B + faceInset,
+                w: slotX[k].w - faceInset * 2,
+                h: 2 * B - faceInset * 2,
+            };
+            const gaugeFace = faceRect('gauge') || null;
+            const mapFace = faceRect('map') || null;
 
-            const maxRadiusFromWidth = (width - padding * 2) * BASE_RADIUS / BASE_TOTAL_WIDTH;
-            const compassRadius = Math.floor(Math.min(maxRadiusFromHeight, maxRadiusFromWidth) * 0.8);
-            const spacing = compassRadius; // gap between instruments = one radius
-
-            const totalGroupWidth = compassRadius * 2 + spacing + compassRadius * 2;
-            const groupLeft = (width - totalGroupWidth) / 2;
-            const compassX = groupLeft + compassRadius;
-            const hudCenterX = groupLeft + compassRadius * 2 + spacing + compassRadius;
-
-            // Notify parent of the instrument layout (sizes the Line Gauge overlay)
-            if (onLayout) onLayout({ hudCenterX, canvasWidth: width, compassRadius });
+            // Tell the parent where the DOM-rendered faces go (line gauge, minimap)
+            if (onLayout) onLayout({ gauge: gaugeFace, map: mapFace });
 
             // Classic instrument styling shared by the ILS dial and the compass,
             // modelled on the Wikimedia "ILS_gauge.svg" gauge: grey rounded-square bezel with
@@ -108,6 +123,34 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, on
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.arc(x, y, faceR, 0, Math.PI * 2);
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            };
+
+            // Rectangular variant of the bezel for the line gauge and minimap: grey rounded
+            // rectangle, light border, black face inset by `inset` (same width as the round bezels).
+            const drawRectBezel = (left, top, w, h, inset, corner) => {
+                const roundRect = (x, y, rw, rh, r) => {
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(x, y, rw, rh, Math.max(0, r));
+                    else ctx.rect(x, y, rw, rh);
+                };
+                ctx.save();
+                roundRect(left, top, w, h, corner);
+                ctx.fillStyle = '#999';
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = Math.max(1, inset * 0.07);
+                ctx.stroke();
+                const ring = inset * 0.4; // light border just outside the face
+                roundRect(left + inset - ring, top + inset - ring, w - 2 * (inset - ring), h - 2 * (inset - ring), corner * 0.5);
+                ctx.fillStyle = '#e6e6e6';
+                ctx.fill();
+                ctx.lineWidth = Math.max(1, inset * 0.12);
+                ctx.stroke();
+                roundRect(left + inset, top + inset, w - 2 * inset, h - 2 * inset, corner * 0.3);
                 ctx.fillStyle = '#1a1a1a';
                 ctx.fill();
                 ctx.stroke();
@@ -179,10 +222,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, on
                 ctx.textBaseline = 'top';
                 ctx.fillText(`1 dot: ↔ ${limits.green} m  ↕ ${limits.vertical_green} m`, x, y + faceR * 1.12 + fontSize * 0.4);
             };
-            // Shrink the faces so each bezel occupies roughly the layout radius.
-            const faceScale = 0.88;
-
-            drawIls(hudCenterX, height / 2, compassRadius * faceScale);
+            drawIls(ilsX, cy, faceR);
 
 
             // Text info
@@ -344,7 +384,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, on
                 }
 
                 // Static Center Airplane — scale with radius
-                drawAirplane(0, 0, radius / BASE_RADIUS * 0.8);
+                drawAirplane(0, 0, radius / 72 * 0.8); // airplane art is drawn for a 72px radius
 
                 // Top Indicator (Lubber Line)
                 ctx.strokeStyle = 'white';
@@ -358,7 +398,11 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, on
             };
 
             // Draw the compass at its calculated horizontal position
-            drawCompass(compassX, height / 2, compassRadius * faceScale);
+            drawCompass(compassX, cy, faceR);
+
+            // Bezels for the DOM-rendered instruments; their content is overlaid by the parent
+            if (gaugeFace) drawRectBezel(slotX.gauge.left, cy - B, slotX.gauge.w, 2 * B, faceInset, Math.min(B * 0.15, slotX.gauge.w * 0.3));
+            if (mapFace) drawRectBezel(slotX.map.left, cy - B, slotX.map.w, 2 * B, faceInset, B * 0.27);
         };
 
         render();
@@ -366,7 +410,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, on
         return () => {
             window.removeEventListener('resize', render);
         }
-    }, [crossTrackDist, altDiff, heading, targetHeading, limits]);
+    }, [crossTrackDist, altDiff, heading, targetHeading, limits, showGauge, showMap]);
 
     return (
         <canvas

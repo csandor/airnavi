@@ -53,7 +53,7 @@ This project keeps all agent memory in **bd** and **lat.md** — not in Claude C
 ### Components
 - `HUD.jsx` — numeric deviation panel (wraps `DistanceDisplay`) under the instruments
 - `VisualNav.jsx` — canvas with two classic bezel instruments: heading compass + ILS gauge (vertical needle = cross-track, horizontal = vertical deviation; `IlsScale.js`: 1 dot = green limit, 2 dots = yellow; needles coloured by per-axis quality)
-- `MiniMap.jsx` — draggable map overview
+- `MiniMap.jsx` / `LineGauge.jsx` — map overview / line-progress bar, docked (not draggable) in the instrument row; `VisualNav` draws their bezels and reports the face rectangles App overlays them on
 - `LineSelector.jsx` — line picker + completed lines restore; displays lines in row order when one applies (see [Row Order](#row-order))
 - `SummaryDialog.jsx` — post-flight summary; auto-close delay comes from `runtimeSettings.summaryAutoCloseSeconds`, not `config.js` directly
 - `Toast.jsx` — transient notifications

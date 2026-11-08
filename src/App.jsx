@@ -106,6 +106,18 @@ const loadRuntimeSettings = () => {
     }
 };
 
+// Absolute placement of a docked instrument over its bezel face (canvas pixel coords).
+const faceStyle = (r) => ({
+    position: 'absolute',
+    left: `${r.x}px`,
+    top: `${r.y}px`,
+    width: `${r.w}px`,
+    height: `${r.h}px`,
+    zIndex: 20,
+    borderRadius: '4px',
+    overflow: 'hidden',
+});
+
 function App() {
     useWakeLock();
 
@@ -133,23 +145,17 @@ function App() {
     const chunkQuality = useRef(new Map()); // chunk index -> worst quality ('green'|'yellow'|'red') seen while flying
     const prevAlongTrack = useRef(null); // Track previous position for delta
 
-    // HUD halo offset — updated by VisualNav when layout is computed
-    const [hudRadius, setHudRadius] = useState(120);
+    // Face rectangles of the docked line gauge / minimap, reported by VisualNav's layout
+    const [panelFaces, setPanelFaces] = useState({ gauge: null, map: null });
+    const handlePanelLayout = (faces) => setPanelFaces(prev =>
+        JSON.stringify(prev) === JSON.stringify(faces) ? prev : faces);
 
-    // MiniMap dragging state
-    const [miniMapPos, setMiniMapPos] = useState({ bottom: 20, right: 20 });
-    const isDragging = useRef(false);
-    const dragStart = useRef({ x: 0, y: 0 });
     const [showMiniMap, setShowMiniMap] = useState(true);
     const [mapMaximized, setMapMaximized] = useState(false);
     const [autoZoom, setAutoZoom] = useState(true);
     const lastMapBounds = useRef(null); // Remembers FullMap extents across HUD<->Map switches while auto zoom is off
 
-    // Line Gauge dragging state
     const [showLineGauge, setShowLineGauge] = useState(true);
-    const [lineGaugePos, setLineGaugePos] = useState({ bottom: 20, left: 20 });
-    const isDraggingGauge = useRef(false);
-    const dragStartGauge = useRef({ x: 0, y: 0 });
 
     // Dubins path planning mode
     const [planningMode, setPlanningMode] = useState(false);
@@ -463,104 +469,6 @@ function App() {
         });
         return () => navigator.geolocation.clearWatch(watchId);
     }, [simulating, gpsAltitudeDatum]);
-
-    // Global mouse and touch handlers for MiniMap dragging
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (isDragging.current) {
-                const deltaX = e.clientX - dragStart.current.x;
-                const deltaY = dragStart.current.y - e.clientY;
-
-                setMiniMapPos(prev => ({
-                    right: prev.right - deltaX,
-                    bottom: prev.bottom + deltaY
-                }));
-
-                dragStart.current = { x: e.clientX, y: e.clientY };
-            }
-        };
-
-        const handleTouchMove = (e) => {
-            if (isDragging.current && e.touches.length > 0) {
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - dragStart.current.x;
-                const deltaY = dragStart.current.y - touch.clientY;
-
-                setMiniMapPos(prev => ({
-                    right: prev.right - deltaX,
-                    bottom: prev.bottom + deltaY
-                }));
-
-                dragStart.current = { x: touch.clientX, y: touch.clientY };
-                e.preventDefault();
-            }
-        };
-
-        const handleMouseUp = () => {
-            isDragging.current = false;
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-        document.addEventListener('touchend', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.removeEventListener('touchmove', handleTouchMove);
-            document.removeEventListener('touchend', handleMouseUp);
-        };
-    }, []);
-
-    // Global mouse and touch handlers for Line Gauge dragging
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (isDraggingGauge.current) {
-                const deltaX = e.clientX - dragStartGauge.current.x;
-                const deltaY = dragStartGauge.current.y - e.clientY;
-
-                setLineGaugePos(prev => ({
-                    left: prev.left + deltaX,
-                    bottom: prev.bottom + deltaY
-                }));
-
-                dragStartGauge.current = { x: e.clientX, y: e.clientY };
-            }
-        };
-
-        const handleTouchMove = (e) => {
-            if (isDraggingGauge.current && e.touches.length > 0) {
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - dragStartGauge.current.x;
-                const deltaY = dragStartGauge.current.y - touch.clientY;
-
-                setLineGaugePos(prev => ({
-                    left: prev.left + deltaX,
-                    bottom: prev.bottom + deltaY
-                }));
-
-                dragStartGauge.current = { x: touch.clientX, y: touch.clientY };
-                e.preventDefault();
-            }
-        };
-
-        const handleMouseUp = () => {
-            isDraggingGauge.current = false;
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-        document.addEventListener('touchend', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.removeEventListener('touchmove', handleTouchMove);
-            document.removeEventListener('touchend', handleMouseUp);
-        };
-    }, []);
 
     const resetFlightState = () => {
         setFlightStatus('idle');
@@ -1074,7 +982,9 @@ function App() {
                             heading={gpsData.heading}
                             targetHeading={renderHudData.targetHeading}
                             limits={limits}
-                            onLayout={({ compassRadius }) => setHudRadius(compassRadius)}
+                            showGauge={showLineGauge}
+                            showMap={showMiniMap}
+                            onLayout={handlePanelLayout}
                         />
                         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%' }}>
                             <HUD
@@ -1084,34 +994,9 @@ function App() {
                             />
                         </div>
 
-                        {/* MiniMap Overlay */}
-                        {showMiniMap && (
-                            <div
-                                style={{
-                                    position: 'absolute',
-                                    bottom: `${miniMapPos.bottom}px`,
-                                    right: `${miniMapPos.right}px`,
-                                    width: '200px',
-                                    height: '200px',
-                                    zIndex: 20,
-                                    cursor: isDragging.current ? 'grabbing' : 'grab',
-                                    userSelect: 'none',
-                                    touchAction: 'none'
-                                }}
-                                onMouseDown={(e) => {
-                                    isDragging.current = true;
-                                    dragStart.current = { x: e.clientX, y: e.clientY };
-                                    e.preventDefault();
-                                }}
-                                onTouchStart={(e) => {
-                                    if (e.touches.length > 0) {
-                                        isDragging.current = true;
-                                        const touch = e.touches[0];
-                                        dragStart.current = { x: touch.clientX, y: touch.clientY };
-                                        e.preventDefault();
-                                    }
-                                }}
-                            >
+                        {/* Docked instruments: drawn inside the black faces of VisualNav's bezels */}
+                        {showMiniMap && panelFaces.map && (
+                            <div style={faceStyle(panelFaces.map)}>
                                 <MiniMap
                                     currentLine={currentLine}
                                     gpsData={gpsData}
@@ -1123,40 +1008,12 @@ function App() {
                                 />
                             </div>
                         )}
-
-                        {/* Line Gauge Overlay */}
-                        {showLineGauge && currentLine && (
-                            <div
-                                style={{
-                                    position: 'absolute',
-                                    bottom: `${lineGaugePos.bottom}px`,
-                                    left: `${lineGaugePos.left}px`,
-                                    width: '40px',
-                                    height: `${hudRadius * 2}px`,
-                                    zIndex: 20,
-                                    cursor: isDraggingGauge.current ? 'grabbing' : 'grab',
-                                    userSelect: 'none',
-                                    touchAction: 'none'
-                                }}
-                                onMouseDown={(e) => {
-                                    isDraggingGauge.current = true;
-                                    dragStartGauge.current = { x: e.clientX, y: e.clientY };
-                                    e.preventDefault();
-                                }}
-                                onTouchStart={(e) => {
-                                    if (e.touches.length > 0) {
-                                        isDraggingGauge.current = true;
-                                        const touch = e.touches[0];
-                                        dragStartGauge.current = { x: touch.clientX, y: touch.clientY };
-                                        e.preventDefault();
-                                    }
-                                }}
-                            >
+                        {showLineGauge && panelFaces.gauge && (
+                            <div style={faceStyle(panelFaces.gauge)}>
                                 <LineGauge
                                     currentLine={currentLine}
                                     direction={direction}
                                     gpsData={gpsData}
-                                    onClose={toggleLineGauge}
                                     flightStatus={flightStatus}
                                     chunkQuality={Object.fromEntries(chunkQuality.current)}
                                     qualitySegmentLength={config.qualitySegmentLength}

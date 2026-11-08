@@ -22,7 +22,14 @@ Three instruments render the current deviation. Each is a pure view over state t
 
 - [[src/components/HUD.jsx#HUD]] — the numeric deviation panel (distance, cross-track, vertical, heading, speed) under the instruments.
 - [[src/components/VisualNav.jsx#VisualNav]] — canvas drawing two classic panel instruments, styled after Wikimedia's `ILS_gauge.svg` (grey bezel with corner knobs, black face): a heading compass with 5°/10° ticks and the red course line, and an ILS gauge. On the ILS gauge, a vertical needle shows cross-track and a horizontal one vertical deviation, both pointing toward the line, as in the legacy GreyBox panel. It has a centre circle and four dots per side; [[src/utils/IlsScale.js#deviationToDots]] scales each axis by its own effective limits (1 dot = green, 2 dots = yellow, then an exponential approach to 4.5 dots). Needle colours follow each axis' quality at all times, not only while flying; they are the only on-screen quality cue besides the coloured numbers. This replaced an earlier moving "gate" ring and HUD halo/arrows.
+- [[src/components/LineGauge.jsx#LineGauge]] — vertical progress bar along the current line, filled bottom-up and coloured per quality chunk while recording.
 - [[src/components/MiniMap.jsx#MiniMap]] and the lazy-loaded [[src/components/FullMap.jsx#FullMap]] — map overviews; see [[architecture#Offline Basemap]].
+
+### Instrument Panel
+
+The flight view is one fixed row of bezelled instruments: line gauge, compass, ILS gauge, minimap, left to right. Nothing is draggable.
+
+[[src/components/VisualNav.jsx#VisualNav]] lays out the row, sizing everything from the bezel half-height so it fills the width or the height above the numeric panel. The compass, ILS gauge and minimap are equal squares; the gauge bezel is narrow. It draws all bezels, including rectangular ones for the gauge and map. Through `onLayout` it reports the gauge and map face rectangles, and `App` places the DOM components exactly over those faces. Hiding the gauge or minimap in Settings drops its slot and the row re-centres.
 
 ## GPS Sources
 
