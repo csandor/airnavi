@@ -18,7 +18,7 @@ The flying direction is chosen once per line, when it becomes current: whichever
 
 While `idle`, every GPS fix checks the green criteria; when all hold at once, status becomes `flying`.
 
-All four must be true simultaneously, using thresholds from [[src/config.js#config|config.limits]] (runtime-overridable):
+All four must be true simultaneously, using the effective limits: [[src/config.js#config|config.limits]] (runtime-overridable), with the green/yellow values replaced by the current section's [[missions#Mission Tolerances]] when the file declares them:
 
 - within `start_radius` metres of the line's start **or** end point
 - cross-track error ≤ `green`

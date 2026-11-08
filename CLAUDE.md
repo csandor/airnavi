@@ -86,7 +86,8 @@ The parser (`KMLParser.js`) expects:
 - Two rows sharing `(section_Nr, row_Nr)` form one line — first occurrence is `start`, second is `end`
 - Per-section: if the minimum `row_Nr` is `0`, every `row_Nr` in that section is shifted +1 (so numbering starts at 1); sections already starting elsewhere are untouched
 - TXT altitudes are already ellipsoidal — **no** `geoidUndulation` applied (unlike KML)
-- Returns `{lines, rowOrder}` — `rowOrder` is `number[] | null`
+- Header `#<green> <yellow> <hard> //tolerance: horizontal|vertical|yaw` lines become `tolerances` (green/yellow limits for that section, overriding Settings unless `useMissionTolerances` is off) — see `lat.md/missions.md#Mission Tolerances`
+- Returns `{lines, rowOrder, tolerances}` — `rowOrder` is `number[] | null`, `tolerances` is a partial `limits` object or `null`
 
 ## Row Order
 Single-section TXT files may declare a header comment `# <space-delimited row numbers> //row order` (case-insensitive on `//row order`). This becomes `rowOrder` and drives both the Line Selector's display order and `advanceToNextLine()`'s traversal order for that section, in place of plain ascending seq order.

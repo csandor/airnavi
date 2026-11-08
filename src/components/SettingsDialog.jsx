@@ -47,12 +47,20 @@ const toFormStrings = (settings) => Object.fromEntries(
     ])
 );
 
-const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUnits, showMiniMap, onToggleMiniMap, showLineGauge, onToggleLineGauge }) => {
+const MISSION_TOLERANCE_LABELS = {
+    green: 'cross-track green', yellow: 'cross-track yellow',
+    vertical_green: 'vertical green', vertical_yellow: 'vertical yellow',
+    heading_green: 'heading green', heading_yellow: 'heading yellow',
+};
+
+const SettingsDialog = ({ settings, missionTolerances, onSave, onReset, onClose, units, onToggleUnits, showMiniMap, onToggleMiniMap, showLineGauge, onToggleLineGauge }) => {
     const [form, setForm] = useState(() => ({
         ...toFormStrings({ crosshair: settings.crosshair, limits: settings.limits, dubins: settings.dubins }),
         summaryAutoCloseSeconds: String(settings.summaryAutoCloseSeconds),
         gpsAltitudeDatum: settings.gpsAltitudeDatum,
+        useMissionTolerances: settings.useMissionTolerances,
     }));
+    const missionOverrides = form.useMissionTolerances && missionTolerances ? missionTolerances : {};
 
     const handleChange = (groupKey, fieldKey, rawValue) => {
         setForm(prev => ({
@@ -78,6 +86,7 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
         const summaryAutoCloseSeconds = parseFloat(form.summaryAutoCloseSeconds);
         parsed.summaryAutoCloseSeconds = Number.isNaN(summaryAutoCloseSeconds) ? settings.summaryAutoCloseSeconds : summaryAutoCloseSeconds;
         parsed.gpsAltitudeDatum = form.gpsAltitudeDatum;
+        parsed.useMissionTolerances = form.useMissionTolerances;
         onSave(parsed);
         onClose();
     };
@@ -191,6 +200,30 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
                     <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
                         {group.title}
                     </h3>
+                    {group.key === 'limits' && (
+                        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                            <button
+                                className="btn-primary"
+                                onClick={() => handleTopLevelChange('useMissionTolerances', !form.useMissionTolerances)}
+                                title="Mission TXT files may declare the planner's tolerances in their header. When on, those replace the green/yellow fields below for that section."
+                                style={{
+                                    width: '100%',
+                                    padding: 'var(--spacing-sm)',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    border: '1px solid rgba(255,255,255,0.1)'
+                                }}
+                            >
+                                Mission file tolerances: {form.useMissionTolerances ? 'Used' : 'Ignored'}
+                            </button>
+                            <div style={{ fontSize: '0.75em', marginTop: '4px', color: 'hsl(var(--color-text-secondary))' }}>
+                                {!form.useMissionTolerances
+                                    ? 'The values below apply to every mission.'
+                                    : missionTolerances
+                                        ? `Current section's file sets: ${Object.entries(missionTolerances).map(([k, v]) => `${MISSION_TOLERANCE_LABELS[k]} ${v}`).join(', ')}. Those fields below are ignored.`
+                                        : 'The current mission declares no tolerances, so the values below apply.'}
+                            </div>
+                        </div>
+                    )}
                     {group.fields.map(field => (
                         <div key={field.key} style={{ marginBottom: 'var(--spacing-sm)' }}>
                             <label style={{ display: 'block', fontSize: '0.8em', marginBottom: '2px' }} title={field.hint}>
@@ -200,7 +233,9 @@ const SettingsDialog = ({ settings, onSave, onReset, onClose, units, onToggleUni
                                 type="number"
                                 value={form[group.key][field.key]}
                                 onChange={(e) => handleChange(group.key, field.key, e.target.value)}
+                                disabled={group.key === 'limits' && field.key in missionOverrides}
                                 style={{
+                                    opacity: group.key === 'limits' && field.key in missionOverrides ? 0.4 : 1,
                                     width: '100%',
                                     padding: 'var(--spacing-sm)',
                                     borderRadius: 'var(--radius-sm)',

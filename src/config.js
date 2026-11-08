@@ -25,6 +25,10 @@ const config = {
     // 'auto' assumes MSL on iPhone/iPad (WebKit reports height above sea level) and
     // ellipsoidal elsewhere; MSL readings get geoidUndulation added. Runtime-overridable.
     gpsAltitudeDatum: 'auto',
+    // When a TXT/zip mission declares "//tolerance: horizontal|vertical|yaw" header lines,
+    // use them for the green/yellow limits of that section instead of `limits` below.
+    // Runtime-overridable (Settings > Flight Line Quality).
+    useMissionTolerances: true,
 
     // UI / UX
     summaryAutoCloseSeconds: 10,

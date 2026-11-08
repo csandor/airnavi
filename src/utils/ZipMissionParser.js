@@ -13,7 +13,7 @@ const MISSION_FILE_RE = /(?:^|\/)mis(\d{3})\.txt$/i;
  * the existing single-section TxtParser and merged into one multi-section mission.
  *
  * @param {ArrayBuffer} zipBuffer
- * @returns {{lines: Array, rowOrders: Record<number, number[]>}}
+ * @returns {{lines: Array, rowOrders: Record<number, number[]>, tolerances: Record<number, object>}}
  */
 export const parseZipMission = (zipBuffer) => {
     const entries = unzipSync(new Uint8Array(zipBuffer));
@@ -29,6 +29,7 @@ export const parseZipMission = (zipBuffer) => {
 
     const lines = [];
     const rowOrders = {};
+    const tolerances = {};
 
     for (const { path, section } of missionFiles) {
         const content = strFromU8(entries[path]);
@@ -41,9 +42,10 @@ export const parseZipMission = (zipBuffer) => {
 
         parsed.lines.forEach(l => lines.push({ ...l, section }));
         if (parsed.rowOrder) rowOrders[section] = parsed.rowOrder;
+        if (parsed.tolerances) tolerances[section] = parsed.tolerances;
     }
 
     lines.sort((a, b) => a.section - b.section || a.seq - b.seq);
 
-    return { lines, rowOrders };
+    return { lines, rowOrders, tolerances };
 };

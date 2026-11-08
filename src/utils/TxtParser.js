@@ -2,6 +2,37 @@
 // Only meaningful for single-section files — see parseTXT.
 const ROW_ORDER_RE = /^#\s*(.+?)\s*\/\/\s*row order\s*$/i;
 
+// Planner tolerance header comments, e.g. "#9.9 19.8 29.8 //tolerance: horizontal [m]".
+// The first two values are the good (green) and acceptable (yellow) limits, per the
+// GreyBox manual's "Tűréshatárok" chapter; the third (hard limit) and the yaw line's
+// trailing system delay have no counterpart here. Tilt is ignored (no attitude data).
+const TOLERANCE_RE = /^#\s*([-\d.\s]+?)\s*\/\/\s*tolerance:\s*(horizontal|vertical|yaw)\b/i;
+const TOLERANCE_KEYS = {
+    horizontal: ['green', 'yellow'],
+    vertical: ['vertical_green', 'vertical_yellow'],
+    yaw: ['heading_green', 'heading_yellow'],
+};
+
+/**
+ * Reads the planner's tolerance header lines into `config.limits`-shaped keys.
+ * Returns null when the file declares none.
+ * @returns {Partial<Record<'green'|'yellow'|'vertical_green'|'vertical_yellow'|'heading_green'|'heading_yellow', number>> | null}
+ */
+export const parseTolerances = (allLines) => {
+    const tolerances = {};
+    allLines.forEach(l => {
+        const match = l.match(TOLERANCE_RE);
+        if (!match) return;
+        const values = match[1].trim().split(/\s+/).map(Number);
+        const [greenKey, yellowKey] = TOLERANCE_KEYS[match[2].toLowerCase()];
+        // A malformed line is skipped (Settings limits apply) rather than failing the whole mission.
+        if (values.length < 2 || values.slice(0, 2).some(v => !Number.isFinite(v) || v <= 0)) return;
+        tolerances[greenKey] = values[0];
+        tolerances[yellowKey] = values[1];
+    });
+    return Object.keys(tolerances).length > 0 ? tolerances : null;
+};
+
 /**
  * Parses fixed-width flight-line TXT files (e.g. Vernova survey mission format).
  *
@@ -18,7 +49,10 @@ const ROW_ORDER_RE = /^#\s*(.+?)\s*\/\/\s*row order\s*$/i;
  *   both display and auto-advance order for that section (see App.jsx).
  *
  * @param {string} txtText - The raw TXT file content.
- * @returns {{lines: Array<{seq: number, section: number, start: {lat: number, lon: number, alt: number}, end: {lat: number, lon: number, alt: number}}>, rowOrder: number[] | null}}
+ * - Header comments "<green> <yellow> <hard> //tolerance: horizontal|vertical|yaw"
+ *   become `tolerances` (see parseTolerances).
+ *
+ * @returns {{lines: Array<{seq: number, section: number, start: {lat: number, lon: number, alt: number}, end: {lat: number, lon: number, alt: number}}>, rowOrder: number[] | null, tolerances: object | null}}
  */
 export const parseTXT = (txtText) => {
     const allLines = txtText.split(/\r?\n/).map(l => l.trim());
@@ -94,5 +128,5 @@ export const parseTXT = (txtText) => {
         });
     }
 
-    return { lines, rowOrder };
+    return { lines, rowOrder, tolerances: parseTolerances(allLines) };
 };

@@ -14,7 +14,7 @@ Two `useEffect` loops run on every GPS fix: the auto-start check (see [[flight#A
 
 [[src/config.js#config]] holds every tuneable parameter and is the source of truth for defaults.
 
-The `limits`, `crosshair` and `dubins` groups, `summaryAutoCloseSeconds` and `gpsAltitudeDatum` can be overridden at runtime from the Settings dialog ([[src/components/SettingsDialog.jsx#SettingsDialog]]). Overrides are persisted to `localStorage` under `runtimeSettings`; everything else is fixed at build time.
+The `limits`, `crosshair` and `dubins` groups, `summaryAutoCloseSeconds`, `gpsAltitudeDatum` and `useMissionTolerances` can be overridden at runtime from the Settings dialog ([[src/components/SettingsDialog.jsx#SettingsDialog]]). Overrides are persisted to `localStorage` under `runtimeSettings`; everything else is fixed at build time.
 
 ## Displays
 

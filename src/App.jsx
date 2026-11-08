@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Suspense, lazy } from 'react'
+import { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react'
 import { parseKML } from './utils/KMLParser'
 import { parseTXT } from './utils/TxtParser'
 import { parseZipMission } from './utils/ZipMissionParser'
@@ -64,17 +64,22 @@ const applyGeoidUndulation = (lines) => {
 // KML altitudes are MSL and need geoid undulation to become ellipsoidal;
 // TXT altitudes are already ellipsoidal. KML lines have no section concept,
 // so they're all tagged into a single implicit section.
-// Returns {lines, rowOrders} — rowOrders is a map of section -> custom seq order,
+// Returns {lines, rowOrders, tolerances} — tolerances is a map of section -> the
+// planner's header limits (see TxtParser.js parseTolerances); rowOrders is a map of section -> custom seq order,
 // populated for single-section TXT files with a row-order header comment (see
 // TxtParser.js) and for zip missions bundling one such file per section.
 const parseFlightFile = (filename, content) => {
     if (/\.txt$/i.test(filename)) {
-        const { lines, rowOrder } = parseTXT(content);
+        const { lines, rowOrder, tolerances } = parseTXT(content);
         const section = lines[0]?.section;
-        return { lines, rowOrders: rowOrder ? { [section]: rowOrder } : {} };
+        return {
+            lines,
+            rowOrders: rowOrder ? { [section]: rowOrder } : {},
+            tolerances: tolerances ? { [section]: tolerances } : {},
+        };
     }
     const lines = applyGeoidUndulation(parseKML(content)).map(l => ({ ...l, section: 1 }));
-    return { lines, rowOrders: {} };
+    return { lines, rowOrders: {}, tolerances: {} };
 };
 
 const loadRuntimeSettings = () => {
@@ -84,6 +89,7 @@ const loadRuntimeSettings = () => {
         dubins: config.dubins,
         summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
         gpsAltitudeDatum: config.gpsAltitudeDatum,
+        useMissionTolerances: config.useMissionTolerances,
     };
     const saved = localStorage.getItem('runtimeSettings');
     if (!saved) return defaults;
@@ -95,6 +101,7 @@ const loadRuntimeSettings = () => {
             dubins: { ...defaults.dubins, ...parsed.dubins },
             summaryAutoCloseSeconds: parsed.summaryAutoCloseSeconds ?? defaults.summaryAutoCloseSeconds,
             gpsAltitudeDatum: parsed.gpsAltitudeDatum ?? defaults.gpsAltitudeDatum,
+            useMissionTolerances: parsed.useMissionTolerances ?? defaults.useMissionTolerances,
         };
     } catch {
         return defaults;
@@ -108,6 +115,8 @@ function App() {
     const [lines, setLines] = useState([])
     const [missionFileName, setMissionFileName] = useState('lines.kml')
     const [rowOrders, setRowOrders] = useState({})
+    // section -> tolerance limits declared in that section's mission file header
+    const [missionTolerances, setMissionTolerances] = useState({})
     const [currentLine, setCurrentLine] = useState(null)
     const [currentSection, setCurrentSection] = useState(null)
     const [direction, setDirection] = useState('normal')
@@ -192,6 +201,7 @@ function App() {
             dubins: config.dubins,
             summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
             gpsAltitudeDatum: config.gpsAltitudeDatum,
+            useMissionTolerances: config.useMissionTolerances,
         });
     };
 
@@ -233,9 +243,10 @@ function App() {
         if (savedZipBase64) {
             try {
                 const zipBuffer = base64ToArrayBuffer(savedZipBase64);
-                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseZipMission(zipBuffer);
+                const { lines: parsedLines, rowOrders: parsedRowOrders, tolerances: parsedTolerances } = parseZipMission(zipBuffer);
                 setLines(parsedLines);
                 setRowOrders(parsedRowOrders);
+                setMissionTolerances(parsedTolerances);
                 setMissionFileName(savedFileName);
                 showToast("Loaded Custom Mission Zip", "success");
                 return;
@@ -247,9 +258,10 @@ function App() {
             }
         } else if (savedKml) {
             try {
-                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseFlightFile(savedFileName, savedKml);
+                const { lines: parsedLines, rowOrders: parsedRowOrders, tolerances: parsedTolerances } = parseFlightFile(savedFileName, savedKml);
                 setLines(parsedLines);
                 setRowOrders(parsedRowOrders);
+                setMissionTolerances(parsedTolerances);
                 setMissionFileName(savedFileName);
                 showToast("Loaded Custom Flight File", "success");
                 return;
@@ -268,6 +280,7 @@ function App() {
                 const parsedLines = applyGeoidUndulation(parseKML(text)).map(l => ({ ...l, section: 1 }))
                 setLines(parsedLines)
                 setRowOrders({})
+                setMissionTolerances({})
                 setMissionFileName(config.kmlFilePath.split('/').pop())
             })
             .catch(err => console.error("Failed to load KML", err))
@@ -305,9 +318,10 @@ function App() {
             fetch(`${config.bundledKmlDir}${filename}`)
                 .then(res => res.arrayBuffer())
                 .then(zipBuffer => {
-                    const { lines: parsedLines, rowOrders: parsedRowOrders } = parseZipMission(zipBuffer);
+                    const { lines: parsedLines, rowOrders: parsedRowOrders, tolerances: parsedTolerances } = parseZipMission(zipBuffer);
                     setLines(parsedLines);
                     setRowOrders(parsedRowOrders);
+                    setMissionTolerances(parsedTolerances);
                     setMissionFileName(filename);
                     localStorage.setItem('customMissionZip', arrayBufferToBase64(zipBuffer));
                     localStorage.removeItem('customKml');
@@ -327,9 +341,10 @@ function App() {
         fetch(`${config.bundledKmlDir}${filename}`)
             .then(res => res.text())
             .then(content => {
-                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseFlightFile(filename, content);
+                const { lines: parsedLines, rowOrders: parsedRowOrders, tolerances: parsedTolerances } = parseFlightFile(filename, content);
                 setLines(parsedLines);
                 setRowOrders(parsedRowOrders);
+                setMissionTolerances(parsedTolerances);
                 setMissionFileName(filename);
                 localStorage.removeItem('customMissionZip');
                 localStorage.setItem('customKml', content);
@@ -354,9 +369,10 @@ function App() {
             reader.onload = (e) => {
                 const zipBuffer = e.target.result;
                 try {
-                    const { lines: parsedLines, rowOrders: parsedRowOrders } = parseZipMission(zipBuffer);
+                    const { lines: parsedLines, rowOrders: parsedRowOrders, tolerances: parsedTolerances } = parseZipMission(zipBuffer);
                     setLines(parsedLines);
                     setRowOrders(parsedRowOrders);
+                    setMissionTolerances(parsedTolerances);
                     setMissionFileName(file.name);
                     localStorage.setItem('customMissionZip', arrayBufferToBase64(zipBuffer));
                     localStorage.removeItem('customKml');
@@ -378,9 +394,10 @@ function App() {
         reader.onload = (e) => {
             const content = e.target.result;
             try {
-                const { lines: parsedLines, rowOrders: parsedRowOrders } = parseFlightFile(file.name, content);
+                const { lines: parsedLines, rowOrders: parsedRowOrders, tolerances: parsedTolerances } = parseFlightFile(file.name, content);
                 setLines(parsedLines);
                 setRowOrders(parsedRowOrders);
+                setMissionTolerances(parsedTolerances);
                 setMissionFileName(file.name);
                 localStorage.removeItem('customMissionZip');
                 localStorage.setItem('customKml', content);
@@ -418,6 +435,18 @@ function App() {
     // Line altitudes are ellipsoidal; convert the device's GPS altitude to match
     // (iOS/iPadOS report MSL — see AltitudeDatum.js).
     const gpsAltitudeDatum = resolveGpsAltitudeDatum(runtimeSettings.gpsAltitudeDatum);
+
+    // Quality limits in effect: the current section's mission-file tolerances (when the
+    // file declares them) layered over the Settings limits, unless the pilot switched
+    // useMissionTolerances off. start_radius and speed limits always come from Settings.
+    const activeSection = currentLine?.section ?? currentSection;
+    const sectionTolerances = missionTolerances[activeSection] ?? null;
+    const limits = useMemo(
+        () => (runtimeSettings.useMissionTolerances && sectionTolerances
+            ? { ...runtimeSettings.limits, ...sectionTolerances }
+            : runtimeSettings.limits),
+        [runtimeSettings.useMissionTolerances, runtimeSettings.limits, sectionTolerances]
+    );
 
     useEffect(() => {
         if (simulating) return;
@@ -755,7 +784,7 @@ function App() {
 
         const distToStart = calculateDistance(gpsData.lat, gpsData.lon, start.lat, start.lon) * 1000;
         const distToEnd = calculateDistance(gpsData.lat, gpsData.lon, end.lat, end.lon) * 1000;
-        const nearEndpoint = distToStart <= runtimeSettings.limits.start_radius || distToEnd <= runtimeSettings.limits.start_radius;
+        const nearEndpoint = distToStart <= limits.start_radius || distToEnd <= limits.start_radius;
 
         // Only allow auto-start near the start of the line, not the end (e.g. overshooting
         // past the endpoint in simulation shouldn't immediately re-trigger recording).
@@ -764,15 +793,15 @@ function App() {
         if (alongTrack >= totalLen) return;
 
         if (nearEndpoint &&
-            Math.abs(crossTrackDist) <= runtimeSettings.limits.green &&
-            Math.abs(altDiff) <= runtimeSettings.limits.vertical_green &&
-            Math.abs(headingDiff) <= runtimeSettings.limits.heading_green) {
+            Math.abs(crossTrackDist) <= limits.green &&
+            Math.abs(altDiff) <= limits.vertical_green &&
+            Math.abs(headingDiff) <= limits.heading_green) {
             resetFlightState();
             setFlightStatus('flying');
             flightLogger.startFlight();
             showToast("Recording Started", "success");
         }
-    }, [gpsData, flightStatus, currentLine, direction, runtimeSettings.limits]);
+    }, [gpsData, flightStatus, currentLine, direction, limits]);
 
     // Dubins path recompute (throttled) while in planning mode
     useEffect(() => {
@@ -808,11 +837,11 @@ function App() {
         while (headingDiff < -180) headingDiff += 360;
         while (headingDiff > 180) headingDiff -= 360;
 
-        if (Math.abs(crossTrackDist) <= runtimeSettings.limits.green && Math.abs(headingDiff) <= runtimeSettings.limits.heading_green) {
+        if (Math.abs(crossTrackDist) <= limits.green && Math.abs(headingDiff) <= limits.heading_green) {
             setPlanningMode(false);
             setDubinsPath(null);
         }
-    }, [planningMode, gpsData, currentLine, direction, runtimeSettings.limits]);
+    }, [planningMode, gpsData, currentLine, direction, limits]);
 
     // Logic Loop via Effect
     useEffect(() => {
@@ -852,7 +881,7 @@ function App() {
 
         // Update Coverage
         const currentAlongTrack = alongTrack;
-        if (Math.abs(crossTrackDist) <= runtimeSettings.limits.green) {
+        if (Math.abs(crossTrackDist) <= limits.green) {
             if (prevAlongTrack.current !== null) {
                 const startRange = Math.min(prevAlongTrack.current, currentAlongTrack);
                 const endRange = Math.max(prevAlongTrack.current, currentAlongTrack);
@@ -864,7 +893,7 @@ function App() {
 
         // Update per-chunk quality (worst quality ever seen wins) for map track coloring
         if (prevAlongTrack.current !== null) {
-            const quality = classifyQuality(crossTrackDist, altDiff, runtimeSettings.limits);
+            const quality = classifyQuality(crossTrackDist, altDiff, limits);
             const segLen = config.qualitySegmentLength;
             const startChunk = Math.floor(Math.min(prevAlongTrack.current, currentAlongTrack) / segLen);
             const endChunk = Math.floor(Math.max(prevAlongTrack.current, currentAlongTrack) / segLen);
@@ -890,7 +919,7 @@ function App() {
         }
 
         prevAlongTrack.current = alongTrack;
-    }, [gpsData, flightStatus, currentLine, direction, runtimeSettings.limits]);
+    }, [gpsData, flightStatus, currentLine, direction, limits]);
 
     // Calculate HUD Data for Render (Visual only)
     let renderHudData = {
@@ -990,6 +1019,7 @@ function App() {
             {showSettings && (
                 <SettingsDialog
                     settings={runtimeSettings}
+                    missionTolerances={sectionTolerances}
                     onSave={updateRuntimeSettings}
                     onReset={resetRuntimeSettings}
                     onClose={() => setShowSettings(false)}
@@ -1033,7 +1063,7 @@ function App() {
                             <DistanceDisplay
                                 {...renderHudData}
                                 units={units}
-                                limits={runtimeSettings.limits}
+                                limits={limits}
                                 style={{ zIndex: 30 }}
                             />
                         )}
@@ -1047,7 +1077,7 @@ function App() {
                             altDiff={renderHudData.altDiff}
                             heading={gpsData.heading}
                             targetHeading={renderHudData.targetHeading}
-                            limits={runtimeSettings.limits}
+                            limits={limits}
                             crosshair={runtimeSettings.crosshair}
                             flightStatus={flightStatus}
                             onLayout={({ hudCenterX, canvasWidth, compassRadius }) => {
@@ -1059,7 +1089,7 @@ function App() {
                             <HUD
                                 {...renderHudData}
                                 units={units}
-                                limits={runtimeSettings.limits}
+                                limits={limits}
                                 horizontalOffset={hudHorizontalOffset}
                                 radius={hudRadius}
                             />

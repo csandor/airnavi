@@ -27,6 +27,14 @@ A single-section TXT file may declare `# <row numbers> //row order` (case-insens
 
 Traversal over this order is described in [[flight#Line Advance]].
 
+## Mission Tolerances
+
+Planner exports declare quality limits in header comments such as `#9.9 19.8 29.8 //tolerance: horizontal [m]`; when present they replace the Settings green/yellow limits for that section.
+
+[[src/utils/TxtParser.js#parseTolerances]] maps the `horizontal`, `vertical` and `yaw` lines to `green`/`yellow`, `vertical_green`/`vertical_yellow` and `heading_green`/`heading_yellow`. Each line's first two values become the green and yellow limits. That matches the GreyBox manual's tolerance chapter: green is 15% of row spacing sideways and 5% of height above ground vertically, yellow is 30% and 10%. The third value (hard limit), the yaw line's trailing system delay and the `tilt` line have no counterpart and are ignored. A malformed line is skipped rather than failing the mission.
+
+`parseTXT` returns them as `tolerances`. `App` keeps `missionTolerances: {[section]: limits}`, filled per section for zip missions, and layers the current section's entry over the Settings `limits` unless the `useMissionTolerances` setting is off. `start_radius` and the speed limits always come from Settings. KML files carry no tolerances.
+
 ## Zip Missions
 
 [[src/utils/ZipMissionParser.js#parseZipMission]] unzips an archive of single-section `mis###.txt` exports with `fflate` and merges them into one multi-section mission.
