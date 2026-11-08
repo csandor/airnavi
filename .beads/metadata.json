@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "airnavi",
+  "project_id": "10faedb8-c728-42f1-b191-166ee03b3230"
+}
