@@ -5,14 +5,6 @@ const DATUM_LABELS = { ellipsoidal: 'Ellipsoidal (WGS-84)', msl: 'Sea level (MSL
 
 const FIELD_GROUPS = [
     {
-        key: 'crosshair',
-        title: 'Crosshair',
-        fields: [
-            { key: 'maxCrossTrack', label: 'Max Cross-Track (m)', hint: 'Horizontal distance at which the crosshair reaches max screen offset' },
-            { key: 'maxAltDiff', label: 'Max Alt Diff (m)', hint: 'Vertical distance at which the crosshair reaches max screen offset' },
-        ]
-    },
-    {
         key: 'limits',
         title: 'Flight Line Quality',
         fields: [
@@ -55,11 +47,10 @@ const MISSION_TOLERANCE_LABELS = {
 
 const SettingsDialog = ({ settings, missionTolerances, onSave, onReset, onClose, units, onToggleUnits, showMiniMap, onToggleMiniMap, showLineGauge, onToggleLineGauge }) => {
     const [form, setForm] = useState(() => ({
-        ...toFormStrings({ crosshair: settings.crosshair, limits: settings.limits, dubins: settings.dubins }),
+        ...toFormStrings({ limits: settings.limits, dubins: settings.dubins }),
         summaryAutoCloseSeconds: String(settings.summaryAutoCloseSeconds),
         gpsAltitudeDatum: settings.gpsAltitudeDatum,
         useMissionTolerances: settings.useMissionTolerances,
-        navInstrument: settings.navInstrument,
     }));
     const missionOverrides = form.useMissionTolerances && missionTolerances ? missionTolerances : {};
 
@@ -88,7 +79,6 @@ const SettingsDialog = ({ settings, missionTolerances, onSave, onReset, onClose,
         parsed.summaryAutoCloseSeconds = Number.isNaN(summaryAutoCloseSeconds) ? settings.summaryAutoCloseSeconds : summaryAutoCloseSeconds;
         parsed.gpsAltitudeDatum = form.gpsAltitudeDatum;
         parsed.useMissionTolerances = form.useMissionTolerances;
-        parsed.navInstrument = form.navInstrument;
         onSave(parsed);
         onClose();
     };
@@ -171,24 +161,6 @@ const SettingsDialog = ({ settings, missionTolerances, onSave, onReset, onClose,
                 </button>
             </div>
 
-            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>
-                    Nav Instrument
-                </h3>
-                <button
-                    className="btn-primary"
-                    onClick={() => handleTopLevelChange('navInstrument', form.navInstrument === 'ils' ? 'gate' : 'ils')}
-                    title="Gate: a target ring that moves toward the line. ILS: a fixed dial with course and glideslope needles; 1 dot = green limit, 2 dots = yellow limit."
-                    style={{
-                        width: '100%',
-                        padding: 'var(--spacing-sm)',
-                        background: 'rgba(255,255,255,0.1)',
-                        border: '1px solid rgba(255,255,255,0.1)'
-                    }}
-                >
-                    {form.navInstrument === 'ils' ? 'ILS needles' : 'Gate'}
-                </button>
-            </div>
 
             <div style={{ marginBottom: 'var(--spacing-lg)' }}>
                 <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--spacing-sm)', color: 'hsl(var(--color-text-secondary))' }}>

@@ -14,14 +14,14 @@ Two `useEffect` loops run on every GPS fix: the auto-start check (see [[flight#A
 
 [[src/config.js#config]] holds every tuneable parameter and is the source of truth for defaults.
 
-The `limits`, `crosshair` and `dubins` groups, `summaryAutoCloseSeconds`, `gpsAltitudeDatum`, `useMissionTolerances` and `navInstrument` can be overridden at runtime from the Settings dialog ([[src/components/SettingsDialog.jsx#SettingsDialog]]). Overrides are persisted to `localStorage` under `runtimeSettings`; everything else is fixed at build time.
+The `limits` and `dubins` groups, `summaryAutoCloseSeconds`, `gpsAltitudeDatum` and `useMissionTolerances` can be overridden at runtime from the Settings dialog ([[src/components/SettingsDialog.jsx#SettingsDialog]]). Overrides are persisted to `localStorage` under `runtimeSettings`; everything else is fixed at build time.
 
 ## Displays
 
 Three instruments render the current deviation. Each is a pure view over state that `App` computes.
 
-- [[src/components/HUD.jsx#HUD]] — numeric deviation display; its center halo is always white and does not reflect tracking quality.
-- [[src/components/VisualNav.jsx#VisualNav]] — canvas attitude compass plus a right-hand instrument chosen by the `navInstrument` setting. `gate` draws a ring that moves toward the line, coloured by [[src/utils/QualityUtils.js#classifyQuality]] while flying and white otherwise. `ils` draws a classic ILS gauge (styled after Wikimedia's `ILS_gauge.svg`: grey bezel with corner knobs, black face, centre circle, four dots per side). A vertical needle shows cross-track and a horizontal one vertical deviation, both pointing toward the line, as in the legacy GreyBox panel. Needle colours follow each axis' quality at all times, not only while flying, since this mode has no other quality cue. [[src/utils/IlsScale.js#deviationToDots]] scales each axis by its own effective limits (1 dot = green, 2 dots = yellow, then an exponential approach to 4.5 dots); the `crosshair` settings only affect the gate. In `ils` mode the compass gets the same bezel and face with 5°/10° ticks, both faces shrink to 0.88 of the layout radius so the bezels fit the old footprint, and the HUD hides its halo and arrows.
+- [[src/components/HUD.jsx#HUD]] — the numeric deviation panel (distance, cross-track, vertical, heading, speed) under the instruments.
+- [[src/components/VisualNav.jsx#VisualNav]] — canvas drawing two classic panel instruments, styled after Wikimedia's `ILS_gauge.svg` (grey bezel with corner knobs, black face): a heading compass with 5°/10° ticks and the red course line, and an ILS gauge. On the ILS gauge, a vertical needle shows cross-track and a horizontal one vertical deviation, both pointing toward the line, as in the legacy GreyBox panel. It has a centre circle and four dots per side; [[src/utils/IlsScale.js#deviationToDots]] scales each axis by its own effective limits (1 dot = green, 2 dots = yellow, then an exponential approach to 4.5 dots). Needle colours follow each axis' quality at all times, not only while flying; they are the only on-screen quality cue besides the coloured numbers. This replaced an earlier moving "gate" ring and HUD halo/arrows.
 - [[src/components/MiniMap.jsx#MiniMap]] and the lazy-loaded [[src/components/FullMap.jsx#FullMap]] — map overviews; see [[architecture#Offline Basemap]].
 
 ## GPS Sources

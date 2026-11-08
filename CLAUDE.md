@@ -51,8 +51,8 @@ This project keeps all agent memory in **bd** and **lat.md** — not in Claude C
 - `src/hooks/useWakeLock.js` — requests a Screen Wake Lock on mount, re-acquires on `visibilitychange`; called unconditionally at the top of `App`
 
 ### Components
-- `HUD.jsx` — primary flight deviation display. The center halo circle is always white (does not reflect tracking quality)
-- `VisualNav.jsx` — visual alignment indicator (attitude compass + gate ring). The gate ring (ticks around the target) turns green/yellow/red by `classifyQuality()` while `flightStatus === 'flying'`, white otherwise. With `navInstrument: 'ils'` the gate is replaced by an ILS-style needle dial (`IlsScale.js`: 1 dot = green limit, 2 dots = yellow)
+- `HUD.jsx` — numeric deviation panel (wraps `DistanceDisplay`) under the instruments
+- `VisualNav.jsx` — canvas with two classic bezel instruments: heading compass + ILS gauge (vertical needle = cross-track, horizontal = vertical deviation; `IlsScale.js`: 1 dot = green limit, 2 dots = yellow; needles coloured by per-axis quality)
 - `MiniMap.jsx` — draggable map overview
 - `LineSelector.jsx` — line picker + completed lines restore; displays lines in row order when one applies (see [Row Order](#row-order))
 - `SummaryDialog.jsx` — post-flight summary; auto-close delay comes from `runtimeSettings.summaryAutoCloseSeconds`, not `config.js` directly
@@ -118,7 +118,7 @@ Unzips (via `fflate`'s `unzipSync`) an archive containing several single-section
 See `src/config.js` directly for current values — treat this file as the source of truth rather than duplicating numbers here, since defaults have drifted from earlier copies of this doc before. Notable non-obvious ones:
 - `summaryAutoCloseSeconds` — overridable at runtime via `runtimeSettings.summaryAutoCloseSeconds` (⚙ Settings), not fixed at build time like most of this file
 - `geoidUndulation` — only applied to KML lines (`applyGeoidUndulation()`); TXT/zip lines are already ellipsoidal and skip it entirely
-- `limits.*`, `crosshair.*`, `dubins.*` — all overridable at runtime (⚙ Settings → `runtimeSettings`, persisted to `localStorage` key `runtimeSettings`)
+- `limits.*`, `dubins.*`, `gpsAltitudeDatum`, `useMissionTolerances` — all overridable at runtime (⚙ Settings → `runtimeSettings`, persisted to `localStorage` key `runtimeSettings`)
 
 ## Custom Mission Storage
 - Imported KML/TXT files are stored as raw text in `localStorage` key `customKml`, with `customFileName` alongside it. Restored on next launch via `parseFlightFile()`.

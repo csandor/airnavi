@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from 'react';
-import { classifyQuality, QUALITY_COLORS } from '../utils/QualityUtils';
+import { QUALITY_COLORS } from '../utils/QualityUtils';
 import { deviationToDots, axisQuality } from '../utils/IlsScale';
 
-const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus, instrument = 'gate', onLayout }) => {
+const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, onLayout }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -42,30 +42,6 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             ctx.lineTo(width, horizonY);
             ctx.stroke();
 
-            // Draw Target "Line" / Gate
-            // Perspective Projection
-            // offsetX depends on crossTrackDist
-            // offsetY depends on altDiff
-
-            // Scaling factor: How many pixels per meter?
-            // Depends on FOV. Let's approximate.
-            // If crossTrack is 0, gate is center.
-            // If crossTrack is +50m (we are Right), gate appears Left.
-
-            // Logarithmic crosshair displacement.
-            // maxPx = 2 * compassRadius (computed later, so we forward-ref it here after sizing).
-            // logDisplace(value, maxDist, maxPx):
-            //   maps [0, maxDist] -> [0, maxPx] logarithmically, clamped at maxPx.
-            //   ref = maxDist * 0.1 controls curve shape (smaller = more aggressive log).
-            const logDisplace = (value, maxDist, maxPx) => {
-                const sign = value < 0 ? -1 : 1;
-                const abs = Math.abs(value);
-                const ref = maxDist * 0.1;
-                const px = maxPx * Math.log(1 + abs / ref) / Math.log(1 + maxDist / ref);
-                return sign * Math.min(px, maxPx);
-            };
-            // maxPx is set after compassRadius is computed below; offsetX/Y assigned there too.
-
             // --- Dynamic sizing: fill available space without overlapping bottom data panel ---
             // Bottom data panel is ~70px tall + 20px bottom margin = 90px reserved
             const bottomReserved = 90;
@@ -80,7 +56,6 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
 
             const maxRadiusFromWidth = (width - padding * 2) * BASE_RADIUS / BASE_TOTAL_WIDTH;
             const compassRadius = Math.floor(Math.min(maxRadiusFromHeight, maxRadiusFromWidth) * 0.8);
-            const scale_factor = compassRadius / BASE_RADIUS;
             const spacing = compassRadius; // gap between instruments = one radius
 
             const totalGroupWidth = compassRadius * 2 + spacing + compassRadius * 2;
@@ -88,10 +63,10 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             const compassX = groupLeft + compassRadius;
             const hudCenterX = groupLeft + compassRadius * 2 + spacing + compassRadius;
 
-            // Notify parent of gate center so HUD halo can be aligned to it
+            // Notify parent of the instrument layout (sizes the Line Gauge overlay)
             if (onLayout) onLayout({ hudCenterX, canvasWidth: width, compassRadius });
 
-            // Classic instrument styling shared by the ILS dial and (in ILS mode) the compass,
+            // Classic instrument styling shared by the ILS dial and the compass,
             // modelled on the Wikimedia "ILS_gauge.svg" gauge: grey rounded-square bezel with
             // two corner knobs, a light ring, and a black face of radius `faceR`.
             const drawBezel = (x, y, faceR) => {
@@ -141,7 +116,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
 
             // ILS course deviation dial: fixed face, vertical needle = cross-track,
             // horizontal needle = vertical deviation, both pointing toward the line
-            // ("fly to the needle", same sign convention as the gate). Four dots per side;
+            // ("fly to the needle"). Four dots per side;
             // dots are scaled by the active limits (1 dot = green, 2 dots = yellow), so a
             // needle inside the first dot means that axis is green.
             const drawIls = (x, y, faceR) => {
@@ -204,56 +179,11 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
                 ctx.textBaseline = 'top';
                 ctx.fillText(`1 dot: ↔ ${limits.green} m  ↕ ${limits.vertical_green} m`, x, y + faceR * 1.12 + fontSize * 0.4);
             };
-            // In ILS mode the instruments get a bezel; shrink the face so the bezel
-            // occupies roughly the same footprint as the plain instruments.
-            const faceScale = instrument === 'ils' ? 0.88 : 1;
+            // Shrink the faces so each bezel occupies roughly the layout radius.
+            const faceScale = 0.88;
 
-            if (instrument === 'ils') {
-                drawIls(hudCenterX, height / 2, compassRadius * faceScale);
-            } else {
-                const maxPx = compassRadius * 2;
-                const offsetX = -logDisplace(crossTrackDist, crosshair.maxCrossTrack, maxPx);
-                const offsetY =  logDisplace(altDiff,        crosshair.maxAltDiff,    maxPx);
+            drawIls(hudCenterX, height / 2, compassRadius * faceScale);
 
-                const cx = hudCenterX + offsetX;
-                const cy = height / 2 + offsetY;
-
-                // Gate crosshair — circle with 4 tick lines extending inside and outside the rim.
-                // Colored by tracking quality while recording; white otherwise (matches the compass).
-                const tickInner = compassRadius * 0.55; // line starts inside the circle
-                const tickOuter = compassRadius * 1.2;  // line ends outside the circle
-                const gateColor = flightStatus === 'flying'
-                    ? QUALITY_COLORS[classifyQuality(crossTrackDist, altDiff, limits)]
-                    : 'rgba(255, 255, 255, 0.8)';
-                ctx.strokeStyle = gateColor;
-                ctx.lineWidth = 2;
-                // Circle
-                ctx.beginPath();
-                ctx.arc(cx, cy, compassRadius, 0, Math.PI * 2);
-                ctx.stroke();
-                // Four ticks
-                ctx.beginPath();
-                ctx.moveTo(cx, cy - tickOuter); ctx.lineTo(cx, cy - tickInner); // top
-                ctx.moveTo(cx, cy + tickInner); ctx.lineTo(cx, cy + tickOuter); // bottom
-                ctx.moveTo(cx - tickOuter, cy); ctx.lineTo(cx - tickInner, cy); // left
-                ctx.moveTo(cx + tickInner, cy); ctx.lineTo(cx + tickOuter, cy); // right
-                ctx.stroke();
-
-                // Draw lines connecting corners to a vanishing point?
-                // Vanishing point would be further offset?
-                // For simple visualization, just the gate moving relative to center is enough.
-
-                // Center Crosshair (Aircraft)
-                const crossSize = Math.floor(20 * scale_factor);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(hudCenterX - crossSize, height / 2);
-                ctx.lineTo(hudCenterX + crossSize, height / 2);
-                ctx.moveTo(hudCenterX, height / 2 - crossSize);
-                ctx.lineTo(hudCenterX, height / 2 + crossSize);
-                ctx.stroke();
-            }
 
             // Text info
             ctx.fillStyle = 'white';
@@ -302,24 +232,14 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             };
 
             const drawCompass = (x, y, radius) => {
-                const classic = instrument === 'ils';
-                if (classic) drawBezel(x, y, radius);
+                drawBezel(x, y, radius);
                 ctx.save();
                 ctx.translate(x, y);
 
-                if (classic) {
-                    // Keep the card and course line on the face, off the bezel
-                    ctx.beginPath();
-                    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-                    ctx.clip();
-                } else {
-                    // Outer Rim
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
+                // Keep the card and course line on the face, off the bezel
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.clip();
 
                 // Rotating Part
                 ctx.save();
@@ -329,21 +249,19 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                if (classic) {
-                    // Minor ticks every 5 deg, longer every 10 deg, like a panel heading card
-                    ctx.strokeStyle = '#fff';
-                    for (let deg = 0; deg < 360; deg += 5) {
-                        if (deg % 30 === 0) continue;
-                        const rad = deg * Math.PI / 180;
-                        const inner = radius - (deg % 10 === 0 ? radius * 0.09 : radius * 0.05);
-                        ctx.lineWidth = deg % 10 === 0 ? 1.5 : 1;
-                        ctx.beginPath();
-                        ctx.moveTo(Math.sin(rad) * radius, -Math.cos(rad) * radius);
-                        ctx.lineTo(Math.sin(rad) * inner, -Math.cos(rad) * inner);
-                        ctx.stroke();
-                    }
-                    ctx.lineWidth = 2;
+                // Minor ticks every 5 deg, longer every 10 deg, like a panel heading card
+                ctx.strokeStyle = '#fff';
+                for (let deg = 0; deg < 360; deg += 5) {
+                    if (deg % 30 === 0) continue;
+                    const rad = deg * Math.PI / 180;
+                    const inner = radius - (deg % 10 === 0 ? radius * 0.09 : radius * 0.05);
+                    ctx.lineWidth = deg % 10 === 0 ? 1.5 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.sin(rad) * radius, -Math.cos(rad) * radius);
+                    ctx.lineTo(Math.sin(rad) * inner, -Math.cos(rad) * inner);
+                    ctx.stroke();
                 }
+                ctx.lineWidth = 2;
 
                 for (let deg = 0; deg < 360; deg += 30) {
                     const rad = deg * Math.PI / 180;
@@ -448,7 +366,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
         return () => {
             window.removeEventListener('resize', render);
         }
-    }, [crossTrackDist, altDiff, heading, targetHeading, limits, crosshair, flightStatus, instrument]);
+    }, [crossTrackDist, altDiff, heading, targetHeading, limits]);
 
     return (
         <canvas

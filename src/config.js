@@ -29,9 +29,6 @@ const config = {
     // use them for the green/yellow limits of that section instead of `limits` below.
     // Runtime-overridable (Settings > Flight Line Quality).
     useMissionTolerances: true,
-    // Right-hand nav instrument: 'gate' (moving target ring) or 'ils' (fixed dial with
-    // course/glideslope needles, like the legacy GreyBox panel). Runtime-overridable.
-    navInstrument: 'gate',
 
     // UI / UX
     summaryAutoCloseSeconds: 10,
@@ -48,19 +45,14 @@ const config = {
         }
     },
 
-    // Crosshair displacement limits (meters at which crosshair reaches max screen offset)
-    crosshair: {
-        maxCrossTrack: 500, // horizontal: +/- this many meters -> +/- 2*compassRadius px
-        maxAltDiff: 200,    // vertical:   +/- this many meters -> +/- 2*compassRadius px
-    },
 
     // Length of each colored chunk (meters) when rendering the flown track's quality on the map
     qualitySegmentLength: 10,
 
-    // Limits for Halo Colors (meters)
+    // Quality limits (meters / degrees / knots); green/yellow may be replaced per section by mission-file tolerances
     limits: {
-        green: 5,   // Within this cross-track error -> Green Halo & Completes Line
-        yellow: 10,  // Within this -> Yellow Halo. Above -> Red.
+        green: 5,   // Within this cross-track error -> Green & completes line
+        yellow: 10,  // Within this -> Yellow. Above -> Red.
         vertical_green: 5, // Within this altitude error -> Green
         vertical_yellow: 10, // Within this -> Yellow. Above -> Red.
         heading_green: 10,  // Within this heading error (degrees) -> auto-start recording

@@ -84,26 +84,22 @@ const parseFlightFile = (filename, content) => {
 
 const loadRuntimeSettings = () => {
     const defaults = {
-        crosshair: config.crosshair,
         limits: config.limits,
         dubins: config.dubins,
         summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
         gpsAltitudeDatum: config.gpsAltitudeDatum,
         useMissionTolerances: config.useMissionTolerances,
-        navInstrument: config.navInstrument,
     };
     const saved = localStorage.getItem('runtimeSettings');
     if (!saved) return defaults;
     try {
         const parsed = JSON.parse(saved);
         return {
-            crosshair: { ...defaults.crosshair, ...parsed.crosshair },
             limits: { ...defaults.limits, ...parsed.limits },
             dubins: { ...defaults.dubins, ...parsed.dubins },
             summaryAutoCloseSeconds: parsed.summaryAutoCloseSeconds ?? defaults.summaryAutoCloseSeconds,
             gpsAltitudeDatum: parsed.gpsAltitudeDatum ?? defaults.gpsAltitudeDatum,
             useMissionTolerances: parsed.useMissionTolerances ?? defaults.useMissionTolerances,
-            navInstrument: parsed.navInstrument ?? defaults.navInstrument,
         };
     } catch {
         return defaults;
@@ -138,7 +134,6 @@ function App() {
     const prevAlongTrack = useRef(null); // Track previous position for delta
 
     // HUD halo offset — updated by VisualNav when layout is computed
-    const [hudHorizontalOffset, setHudHorizontalOffset] = useState(184);
     const [hudRadius, setHudRadius] = useState(120);
 
     // MiniMap dragging state
@@ -198,13 +193,11 @@ function App() {
     const resetRuntimeSettings = () => {
         localStorage.removeItem('runtimeSettings');
         setRuntimeSettings({
-            crosshair: config.crosshair,
             limits: config.limits,
             dubins: config.dubins,
             summaryAutoCloseSeconds: config.summaryAutoCloseSeconds,
             gpsAltitudeDatum: config.gpsAltitudeDatum,
             useMissionTolerances: config.useMissionTolerances,
-            navInstrument: config.navInstrument,
         });
     };
 
@@ -1081,22 +1074,13 @@ function App() {
                             heading={gpsData.heading}
                             targetHeading={renderHudData.targetHeading}
                             limits={limits}
-                            crosshair={runtimeSettings.crosshair}
-                            flightStatus={flightStatus}
-                            instrument={runtimeSettings.navInstrument}
-                            onLayout={({ hudCenterX, canvasWidth, compassRadius }) => {
-                                setHudHorizontalOffset(hudCenterX - canvasWidth / 2);
-                                setHudRadius(compassRadius);
-                            }}
+                            onLayout={({ compassRadius }) => setHudRadius(compassRadius)}
                         />
                         <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%' }}>
                             <HUD
                                 {...renderHudData}
                                 units={units}
                                 limits={limits}
-                                horizontalOffset={hudHorizontalOffset}
-                                radius={hudRadius}
-                                showTarget={runtimeSettings.navInstrument !== 'ils'}
                             />
                         </div>
 
