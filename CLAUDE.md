@@ -44,7 +44,7 @@ This project keeps all agent memory in **bd** and **lat.md** — not in Claude C
 - `src/config.js` — all tuneable parameters, edit here first before touching logic
 - `src/App.jsx` — top-level state, GPS watch, flight state machine, two logic `useEffect` loops
 - `src/utils/KMLParser.js` — parses KML into `{seq, start, end}` line objects
-- `src/utils/TxtParser.js` — parses single-section fixed-width TXT missions into `{lines, rowOrder}`; see [Row Order](#row-order)
+- `src/utils/TxtParser.js` — parses single-section fixed-width TXT missions into `{lines, rowOrder, tolerances}`
 - `src/utils/ZipMissionParser.js` — unzips a multi-file mission archive (via `fflate`), parses each `mis###.txt` with `TxtParser`, merges into one multi-section `{lines, rowOrders}`
 - `src/utils/GeoUtils.js` — pure geo math (cross-track, along-track, vertical deviation, bearing)
 - `src/utils/FlightLogger.js` — singleton `flightLogger`, accumulates per-line stats, exports CSV
@@ -55,82 +55,27 @@ This project keeps all agent memory in **bd** and **lat.md** — not in Claude C
 - `HUD.jsx` — numeric deviation panel (wraps `DistanceDisplay`) under the instruments
 - `VisualNav.jsx` — canvas with two classic bezel instruments: heading compass + ILS gauge (vertical needle = cross-track, horizontal = vertical deviation; `IlsScale.js`: 1 dot = green limit, 2 dots = yellow; needles coloured by per-axis quality)
 - `MiniMap.jsx` / `LineGauge.jsx` — map overview / line-progress bar, docked (not draggable or closable; toggled in Settings) in the instrument row; `VisualNav` draws their bezels and reports the face rectangles App overlays them on. The minimap is Web Mercator with the offline OSM basemap underneath (`MiniMapBasemap.jsx`, lazy; only if the OPFS package is already installed)
-- `LineSelector.jsx` — line picker + completed lines restore; displays lines in row order when one applies (see [Row Order](#row-order))
+- `LineSelector.jsx` — line picker + completed lines restore; displays lines in row order when one applies (see `missions#Row Order`)
 - `SummaryDialog.jsx` — post-flight summary; auto-close delay comes from `runtimeSettings.summaryAutoCloseSeconds`, not `config.js` directly
 - `Toast.jsx` — transient notifications
 - `UpdatePrompt.jsx` — registers the service worker and shows "new version ready — Reload" (hidden while flying; never reloads by itself)
-- Units default to **imperial** (`units` state in App, remembered in `localStorage` key `units`, separate from `runtimeSettings`); the ILS legend follows them
 
-## Data Flow
-1. KML loaded → `parseKML()` → `applyGeoidUndulation()` → `lines` state (App.jsx). TXT/zip loaded → `parseTXT()`/`parseZipMission()` → `lines` + `rowOrders` state (no undulation — TXT altitudes are already ellipsoidal)
-2. GPS (`watchPosition`) or emulator → `gpsData` state (every fix triggers both `useEffect` loops)
-3. Auto-start effect: when `flightStatus === 'idle'`, checks all green criteria → sets `'flying'`
-4. Logic loop effect: when `flightStatus === 'flying'`, computes deviations, updates coverage, checks completion → calls `finishFlight()`
-5. `handleLineSelect()` is the single entry point for every way a line becomes current (manual pick, `advanceToNextLine`, restore) — it's where `direction` is auto-oriented once, by comparing GPS distance to `line.start` vs `line.end`; nothing re-evaluates it afterward
+## Domain Knowledge → `lat.md/`
+How the app works lives in `lat.md/` only (one source of truth); read the section before changing the behavior it describes, and update it afterwards.
 
-## Flight State Machine
-`idle` → (auto-start criteria met, or manual toggle) → `flying` → (endpoint crossed or manual toggle) → `completed` / `idle`
+| Topic | Section |
+|---|---|
+| Data flow, App state, the two GPS-fix effects | `architecture#App Shell`, `flight#Logic Loop` |
+| Flight state machine, auto-start criteria, direction | `flight#Flight State Machine`, `flight#Auto-Start`, `flight#Direction` |
+| KML / TXT formats, row order, mission tolerances, zip import | `missions#KML Format`, `missions#TXT Format`, `missions#Row Order`, `missions#Mission Tolerances`, `missions#Zip Missions` |
+| Altitude datum (MSL vs ellipsoidal, iPad) | `missions#Altitude Datum` |
+| config.js and runtime Settings overrides, units | `architecture#Configuration` |
+| Mission storage (`customKml`, `customMissionZip`) | `missions#Mission Storage` |
+| CSV / KMZ export | `flight#Flight Log Export` |
+| Line advance | `flight#Line Advance` |
+| Instrument panel, offline basemap, PWA updates, tests | `architecture#Displays#Instrument Panel`, `architecture#Offline Basemap`, `architecture#Build and PWA#App Updates`, `architecture#Tests` |
 
-Auto-start criteria (all must be true simultaneously):
-- Within `limits.start_radius` meters of line start **or** end point
-- Cross-track error ≤ `limits.green`
-- Vertical error ≤ `limits.vertical_green`
-- Heading error ≤ `limits.heading_green` degrees
-
-## KML Format
-The parser (`KMLParser.js`) expects:
-- Each `<Placemark>` has at least one `<SimpleData>` — the **first** one is used as the sequence number (name doesn't matter)
-- Each line has exactly **2 vertices** (`<coordinates>` with 2 space-separated `lon,lat,alt` triplets)
-- `<altitudeMode>absolute</altitudeMode>` inside `<LineString>` (if `altitudeMode` tag is present, it must be `absolute`)
-- KML altitudes are treated as **MSL**; `geoidUndulation` is added to convert to ellipsoidal for comparison with GPS
-
-## TXT Format (`TxtParser.js`)
-- Data rows: `lon lat alt row_Nr section_Nr` (≥5 whitespace-separated columns); `#`-prefixed lines are comments/metadata
-- Two rows sharing `(section_Nr, row_Nr)` form one line — first occurrence is `start`, second is `end`
-- Per-section: if the minimum `row_Nr` is `0`, every `row_Nr` in that section is shifted +1 (so numbering starts at 1); sections already starting elsewhere are untouched
-- TXT altitudes are already ellipsoidal — **no** `geoidUndulation` applied (unlike KML)
-- Header `#<green> <yellow> <hard> //tolerance: horizontal|vertical|yaw` lines become `tolerances` (green/yellow limits for that section, overriding Settings unless `useMissionTolerances` is off) — see `lat.md/missions.md#Mission Tolerances`
-- Returns `{lines, rowOrder, tolerances}` — `rowOrder` is `number[] | null`, `tolerances` is a partial `limits` object or `null`
-
-## Row Order
-Single-section TXT files may declare a header comment `# <space-delimited row numbers> //row order` (case-insensitive on `//row order`). This becomes `rowOrder` and drives both the Line Selector's display order and `advanceToNextLine()`'s traversal order for that section, in place of plain ascending seq order.
-- **Never shifted**: unlike data-row `row_Nr`, the numbers in this comment are used exactly as written, even if the section's rows got the 0-based shift above — real files have been observed to reference rows inconsistently with the data, and "fixing" that by shifting would hide the inconsistency instead of surfacing it. Every number in the list must match an actual row in the file or parsing throws.
-- Multi-section files ignore this comment entirely (ambiguous which section it's for).
-- Any row not mentioned in the list is appended afterward in ascending order — nothing becomes unreachable.
-- `App.jsx` generalizes this to `rowOrders: {[section]: number[]}` (populated per-section for zip imports — see below) rather than a single flat array, since a multi-section mission can have a different order per section.
-- Manual line selection does **not** reset or override the order — `advanceToNextLine()` always looks up wherever `currentLine` currently sits in `rowOrders[section]` and returns whatever's next in that list (wrapping once, skipping completed lines), so a hand-picked line just repositions where auto-advance continues from.
-- Once a section's row order is exhausted (everything completed), `advanceToNextLine()` falls through to the first line (by that section's own row order, or plain seq order) of the next section in `sections` (ascending).
-
-## Zip Mission Import (`ZipMissionParser.js`)
-Unzips (via `fflate`'s `unzipSync`) an archive containing several single-section `mis###.txt` exports (e.g. a Vernova-style bundle with `mis###.kml`/`mis###.txt`/`mis###_photo_coords.txt` triplets per section).
-- Only `mis###.txt` (exactly 3 digits, any path prefix) is parsed — regex `/(?:^|\/)mis(\d{3})\.txt$/i` naturally excludes both `mis###.kml` and `mis###_photo_coords.txt` since neither ends in bare `.txt` right after the digits.
-- Each matched file's 3-digit number becomes its `section` in the merged mission, overwriting the (always `1`) section that `parseTXT()` assigns internally.
-- Each file's own row-order comment, if present, becomes `rowOrders[thatSection]`.
-- Returns `{lines, rowOrders}` — same shape `App.jsx` expects from `parseFlightFile()`.
-- Persisted to `localStorage` as base64 under `customMissionZip` (binary, unlike the plain-text `customKml` key) and restored with priority over `customKml` on reload.
-- Test fixture: `public/kml/kuldetes_M3_3cm_2026.zip` (43 sections) — see [Test Files](#test-files).
-
-## Altitude Datum
-- Browser `coords.altitude` = WGS-84 ellipsoidal on Android, but **MSL on iOS/iPadOS** (WebKit passes CoreLocation's MSL through). `AltitudeDatum.js` converts it per the `gpsAltitudeDatum` setting (`auto` = MSL on iPhone/iPad) by adding `geoidUndulation`
-- KML altitudes = MSL (as entered by user/GIS tool)
-- `config.geoidUndulation` (meters) is added to KML alts after parsing to put them on the same ellipsoidal datum as GPS
-- Formula: `ellipsoidal = MSL + undulation`
-- Hungary is approximately 43–46 m undulation
-
-## config.js Reference
-See `src/config.js` directly for current values — treat this file as the source of truth rather than duplicating numbers here, since defaults have drifted from earlier copies of this doc before. Notable non-obvious ones:
-- `summaryAutoCloseSeconds` — overridable at runtime via `runtimeSettings.summaryAutoCloseSeconds` (⚙ Settings), not fixed at build time like most of this file
-- `geoidUndulation` — only applied to KML lines (`applyGeoidUndulation()`); TXT/zip lines are already ellipsoidal and skip it entirely
-- `limits.*`, `dubins.*`, `gpsAltitudeDatum`, `useMissionTolerances` — all overridable at runtime (⚙ Settings → `runtimeSettings`, persisted to `localStorage` key `runtimeSettings`)
-
-## Custom Mission Storage
-- Imported KML/TXT files are stored as raw text in `localStorage` key `customKml`, with `customFileName` alongside it. Restored on next launch via `parseFlightFile()`.
-- Imported **zip** missions are stored as base64 in `localStorage` key `customMissionZip` (binary — can't reuse the plain-text `customKml` key) with the same `customFileName`. Takes priority over `customKml` on restore if both happen to be present (they shouldn't be simultaneously in normal use — each import path clears the other key).
-- Cleared via the hamburger menu. The default `lines.kml` is fetched from `public/` as a fallback when neither key is set.
-- `missionFileName` state (App.jsx) drives the displayed mission name (next to the version number) and the exported file names — see CSV/KMZ Export below.
-
-## CSV / KMZ Export
-`flightLogger.downloadCSV(missionFileName)` and `downloadKMZ(history, missionFileName)` (`KMZExporter.js`) both name their output `flight_logs_<mission name>_<date>_<time>.csv`/`.kmz` (`ExportFileName.js`'s `buildExportFileName()`, shared by both). Row/field order: **Section**, **Line** (renamed from `LineID`/`Line ID`), Date, Start Time, End Time, Duration (s), Direction, Completion (%), Max X-Track (m), Max Alt Diff (m), Max Speed (km/h), Max Hdg Diff (deg). The KMZ's placemark `ExtendedData` carries the same fields.
+Use `lat section "<file>#<Section>"` to read one, or `lat search "<query>"`.
 
 ## Development Workflow
 Do not perform browser-based testing of this app (no launching a browser, driving the UI, or taking screenshots). Verify changes via build (`npm run build`), `npm test`, unit-level checks (e.g. running parser/util functions directly with Node), and code review instead. The sources use extensionless imports (`'./TxtParser'`), so plain `node` can't import them — load them through Vite instead: `const s = await createServer({server:{middlewareMode:true}, appType:'custom'}); const m = await s.ssrLoadModule('/src/utils/TxtParser.js')`.
@@ -140,7 +85,7 @@ Both folders are gitignored. Notable files:
 
 `test-kml/` (not bundled):
 - `lines-err-*.kml` — intentionally broken files for testing parser error handling
-- `m3/` — a real multi-section survey export unpacked: one `mis###.kml`/`mis###.txt`/`mis###_photo_coords.txt` triplet per section, each `mis###.txt` carrying its own row-order comment (data rows are 0-based; the row-order comment already uses the post-shift 1-based numbers, so it happens to still validate — see [Row Order](#row-order) for what happens when the two genuinely disagree)
+- `m3/` — a real multi-section survey export unpacked: one `mis###.kml`/`mis###.txt`/`mis###_photo_coords.txt` triplet per section, each `mis###.txt` carrying its own row-order comment (data rows are 0-based; the row-order comment already uses the post-shift 1-based numbers, so it happens to still validate — see `missions#Row Order` for what happens when the two genuinely disagree)
 - `vernova/` — a single-section `mis001` export (kml/txt/photo coords, plus `mis001_sections.txt`)
 
 `public/kml/` (bundled sample missions, offered in the app's picker via the auto-generated `manifest.json`):

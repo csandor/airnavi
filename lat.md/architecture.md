@@ -16,6 +16,8 @@ Two `useEffect` loops run on every GPS fix: the auto-start check (see [[flight#A
 
 The `limits` and `dubins` groups, `summaryAutoCloseSeconds`, `gpsAltitudeDatum` and `useMissionTolerances` can be overridden at runtime from the Settings dialog ([[src/components/SettingsDialog.jsx#SettingsDialog]]). Overrides are persisted to `localStorage` under `runtimeSettings`; everything else is fixed at build time.
 
+Display units default to imperial. The pilot's metric/imperial toggle is remembered under its own `localStorage` key `units`, so resetting Settings doesn't change it.
+
 ## Displays
 
 Three instruments render the current deviation. Each is a pure view over state that `App` computes.
@@ -51,6 +53,10 @@ The minimap projects with Web Mercator ([[src/utils/MiniMapProjection.js#fitMerc
 
 [[vite.config.js]] builds the app with `base: './'` so it runs from any sub-path, and generates the service worker via `vite-plugin-pwa`.
 
+The only deploy target is the viamap web host (https://new.viamap.hu/airnavi/). `npm run deploy` builds, then rsyncs `dist/` over SSH (host alias `viamap`) to `~/new.viamap.hu/airnavi/`. `index.html` is copied in a second pass so a half-finished upload never references missing assets. Nothing remote is deleted, and rsync's change detection keeps the ~250 MB `osm/osm.zip` from being re-sent. GitHub Pages is no longer used.
+
+A small Vite plugin writes `public/kml/manifest.json` listing the bundled sample missions so the app's picker needs no hardcoded list. `public/kml/` is gitignored; the plugin creates it when missing so a fresh checkout still builds, with an empty sample list.
+
 ### App Updates
 
 The service worker is in `prompt` mode, so a new version downloads in the background but never takes over by itself. [[src/components/UpdatePrompt.jsx#UpdatePrompt]] registers it, checks for updates every 30 minutes and whenever the app returns to the foreground, and then shows a "Reload" banner.
@@ -58,10 +64,6 @@ The service worker is in `prompt` mode, so a new version downloads in the backgr
 The banner is hidden while flying. When completed lines or flight-log entries exist it warns that reloading clears them, because both live only in memory. Reloading is always the pilot's tap.
 
 Workbox's `glob` dependency is pinned to v14 through an npm `overrides` entry to clear audit advisories. The remaining low-severity `deepmerge` advisory has no patched release, and it only runs at build time.
-
-The only deploy target is the viamap web host (https://new.viamap.hu/airnavi/). `npm run deploy` builds, then rsyncs `dist/` over SSH (host alias `viamap`) to `~/new.viamap.hu/airnavi/`. `index.html` is copied in a second pass so a half-finished upload never references missing assets. Nothing remote is deleted, and rsync's change detection keeps the ~250 MB `osm/osm.zip` from being re-sent. GitHub Pages is no longer used.
-
-A small Vite plugin writes `public/kml/manifest.json` listing the bundled sample missions so the app's picker needs no hardcoded list. `public/kml/` is gitignored; the plugin creates it when missing so a fresh checkout still builds, with an empty sample list.
 
 ## Tests
 
