@@ -91,51 +91,99 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             // Notify parent of gate center so HUD halo can be aligned to it
             if (onLayout) onLayout({ hudCenterX, canvasWidth: width, compassRadius });
 
-            // ILS-style course deviation dial (like the legacy GreyBox navigation panel):
-            // fixed dial, vertical needle = cross-track, horizontal needle = vertical
-            // deviation. Needles show where the line is ("fly to the needle"), same sign
-            // convention as the gate. Dots are scaled by the active limits, so being
-            // inside the inner (green) zone on both needles means green quality.
-            const drawIls = (x, y, radius) => {
-                const dot = radius * 0.32; // 1 dot; MAX_DOTS * dot stays inside the rim
-                const needleX = x - deviationToDots(crossTrackDist, limits.green, limits.yellow) * dot;
-                const needleY = y + deviationToDots(altDiff, limits.vertical_green, limits.vertical_yellow) * dot;
+            // Classic instrument styling shared by the ILS dial and (in ILS mode) the compass,
+            // modelled on the Wikimedia "ILS_gauge.svg" gauge: grey rounded-square bezel with
+            // two corner knobs, a light ring, and a black face of radius `faceR`.
+            const drawBezel = (x, y, faceR) => {
+                const half = faceR * 1.12;
+                const corner = faceR * 0.27;
+                ctx.save();
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(x - half, y - half, half * 2, half * 2, corner);
+                else ctx.rect(x - half, y - half, half * 2, half * 2); // pre-2023 browsers
+                ctx.fillStyle = '#999';
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = Math.max(1, faceR * 0.008);
+                ctx.stroke();
+                // Corner knobs: half-discs whose flat side faces the centre
+                const knobR = faceR * 0.19;
+                [[-1, Math.PI * 0.75], [1, Math.PI * 1.25]].forEach(([side, startAngle]) => {
+                    const kx = x + side * faceR * 0.8;
+                    const ky = y - faceR * 0.78;
+                    const grad = ctx.createLinearGradient(kx - side * knobR, ky - knobR, kx + side * knobR, ky + knobR);
+                    grad.addColorStop(0, '#ccc');
+                    grad.addColorStop(1, '#4d4d4d');
+                    ctx.beginPath();
+                    ctx.arc(kx, ky, knobR, startAngle, startAngle + Math.PI);
+                    ctx.closePath();
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = Math.max(1, faceR * 0.012);
+                    ctx.stroke();
+                });
+                // Light ring, then the black face
+                ctx.beginPath();
+                ctx.arc(x, y, faceR * 1.045, 0, Math.PI * 2);
+                ctx.fillStyle = '#e6e6e6';
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = Math.max(1, faceR * 0.014);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(x, y, faceR, 0, Math.PI * 2);
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            };
+
+            // ILS course deviation dial: fixed face, vertical needle = cross-track,
+            // horizontal needle = vertical deviation, both pointing toward the line
+            // ("fly to the needle", same sign convention as the gate). Four dots per side;
+            // dots are scaled by the active limits (1 dot = green, 2 dots = yellow), so a
+            // needle inside the first dot means that axis is green.
+            const drawIls = (x, y, faceR) => {
+                drawBezel(x, y, faceR);
+                const firstDot = faceR * 0.318; // just outside the centre circle
+                const dotGap = faceR * 0.163;
+                const dotsToPx = (dots) => {
+                    const abs = Math.abs(dots);
+                    const px = abs <= 1 ? abs * firstDot : firstDot + (abs - 1) * dotGap;
+                    return Math.sign(dots) * px;
+                };
+                const needleX = x - dotsToPx(deviationToDots(crossTrackDist, limits.green, limits.yellow));
+                const needleY = y + dotsToPx(deviationToDots(altDiff, limits.vertical_green, limits.vertical_yellow));
 
                 ctx.save();
-                // Dial face
                 ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(58, 22, 28, 0.85)';
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
+                ctx.arc(x, y, faceR, 0, Math.PI * 2);
                 ctx.clip();
 
-                // Quality zones: within 2 dots on both axes = yellow, within 1 dot = green
-                ctx.fillStyle = 'rgba(200, 170, 0, 0.45)';
-                ctx.beginPath();
-                ctx.arc(x, y, dot * 2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = 'rgba(0, 150, 60, 0.75)';
-                ctx.beginPath();
-                ctx.arc(x, y, dot, 0, Math.PI * 2);
-                ctx.fill();
+                // Scale dots
+                ctx.fillStyle = '#fff';
+                const dotR = faceR * 0.042;
+                for (let n = 0; n < 4; n++) {
+                    const d = firstDot + n * dotGap;
+                    [[d, 0], [-d, 0], [0, d], [0, -d]].forEach(([dx, dy]) => {
+                        ctx.beginPath();
+                        ctx.arc(x + dx, y + dy, dotR, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                }
 
-                // Scale dots on both axes
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.lineWidth = 1.5;
-                const dotR = Math.max(2.5, radius * 0.035);
-                [-2, -1, 1, 2].forEach(n => {
-                    ctx.beginPath(); ctx.arc(x + n * dot, y, dotR, 0, Math.PI * 2); ctx.stroke();
-                    ctx.beginPath(); ctx.arc(x, y + n * dot, dotR, 0, Math.PI * 2); ctx.stroke();
-                });
+                // Centre reference circle
+                const strokeW = faceR * 0.038;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = strokeW;
+                ctx.beginPath();
+                ctx.arc(x, y, faceR * 0.168, 0, Math.PI * 2);
+                ctx.stroke();
 
-                // Needles, coloured by that axis' quality
-                const needleHalf = radius * 0.85;
-                const needleWidth = Math.max(3, radius * 0.05);
-                ctx.lineCap = 'round';
-                ctx.lineWidth = needleWidth;
+                // Needles, coloured by that axis' quality (the only quality cue in ILS mode)
+                const needleHalf = faceR * 0.573;
+                ctx.lineCap = 'butt';
                 ctx.strokeStyle = QUALITY_COLORS[axisQuality(crossTrackDist, limits.green, limits.yellow)];
                 ctx.beginPath();
                 ctx.moveTo(needleX, y - needleHalf);
@@ -146,25 +194,22 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
                 ctx.moveTo(x - needleHalf, needleY);
                 ctx.lineTo(x + needleHalf, needleY);
                 ctx.stroke();
-
-                // Fixed aircraft reference at the centre
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(x, y, Math.max(3, radius * 0.05), 0, Math.PI * 2);
-                ctx.fill();
                 ctx.restore();
 
-                // Scale legend under the dial: what one dot means on each axis
-                const fontSize = Math.max(10, Math.round(radius * 0.13));
+                // Scale legend under the bezel: what one dot means on each axis
+                const fontSize = Math.max(10, Math.round(faceR * 0.13));
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
                 ctx.font = `${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'top';
-                ctx.fillText(`1 dot: ↔ ${limits.green} m  ↕ ${limits.vertical_green} m`, x, y + radius + fontSize * 0.5);
+                ctx.fillText(`1 dot: ↔ ${limits.green} m  ↕ ${limits.vertical_green} m`, x, y + faceR * 1.12 + fontSize * 0.4);
             };
+            // In ILS mode the instruments get a bezel; shrink the face so the bezel
+            // occupies roughly the same footprint as the plain instruments.
+            const faceScale = instrument === 'ils' ? 0.88 : 1;
 
             if (instrument === 'ils') {
-                drawIls(hudCenterX, height / 2, compassRadius);
+                drawIls(hudCenterX, height / 2, compassRadius * faceScale);
             } else {
                 const maxPx = compassRadius * 2;
                 const offsetX = -logDisplace(crossTrackDist, crosshair.maxCrossTrack, maxPx);
@@ -257,15 +302,24 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             };
 
             const drawCompass = (x, y, radius) => {
+                const classic = instrument === 'ils';
+                if (classic) drawBezel(x, y, radius);
                 ctx.save();
                 ctx.translate(x, y);
 
-                // Outer Rim
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(0, 0, radius, 0, Math.PI * 2);
-                ctx.stroke();
+                if (classic) {
+                    // Keep the card and course line on the face, off the bezel
+                    ctx.beginPath();
+                    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                    ctx.clip();
+                } else {
+                    // Outer Rim
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
 
                 // Rotating Part
                 ctx.save();
@@ -274,6 +328,22 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
                 // Ticks and numbers
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+
+                if (classic) {
+                    // Minor ticks every 5 deg, longer every 10 deg, like a panel heading card
+                    ctx.strokeStyle = '#fff';
+                    for (let deg = 0; deg < 360; deg += 5) {
+                        if (deg % 30 === 0) continue;
+                        const rad = deg * Math.PI / 180;
+                        const inner = radius - (deg % 10 === 0 ? radius * 0.09 : radius * 0.05);
+                        ctx.lineWidth = deg % 10 === 0 ? 1.5 : 1;
+                        ctx.beginPath();
+                        ctx.moveTo(Math.sin(rad) * radius, -Math.cos(rad) * radius);
+                        ctx.lineTo(Math.sin(rad) * inner, -Math.cos(rad) * inner);
+                        ctx.stroke();
+                    }
+                    ctx.lineWidth = 2;
+                }
 
                 for (let deg = 0; deg < 360; deg += 30) {
                     const rad = deg * Math.PI / 180;
@@ -370,7 +440,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, cr
             };
 
             // Draw the compass at its calculated horizontal position
-            drawCompass(compassX, height / 2, compassRadius);
+            drawCompass(compassX, height / 2, compassRadius * faceScale);
         };
 
         render();

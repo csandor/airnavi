@@ -2,10 +2,10 @@
 //
 // Each axis is scaled by its own quality limits so the dots mean the same thing on
 // both needles: 1 dot = green limit, 2 dots = yellow limit (linear up to there),
-// then an exponential approach to MAX_DOTS so large errors stay on the dial
+// then an exponential approach to MAX_DOTS (just past the 4th dot) so large errors stay on the dial
 // while still moving the needle. Returns signed dots (sign follows `deviation`).
 
-export const MAX_DOTS = 2.8;
+export const MAX_DOTS = 4.5; // the ILS face shows 4 dots per side
 
 export const deviationToDots = (deviation, greenLimit, yellowLimit) => {
     if (!Number.isFinite(deviation) || !(greenLimit > 0)) return 0;
