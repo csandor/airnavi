@@ -3,6 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 const HamburgerMenu = ({
     simulating,
     onToggleSimulation,
+    replaying,
+    onNmeaReplay,
+    onStopReplay,
     onDownloadCSV,
     onDownloadKMZ,
     onKmlImport,
@@ -81,6 +84,24 @@ const HamburgerMenu = ({
                         onClick={() => handleAction(onToggleSimulation)}
                         label={simulating ? '⏹ Stop Sim' : '▶ Simulate Flight'}
                     />
+                    {replaying ? (
+                        <MenuButton
+                            onClick={() => handleAction(onStopReplay)}
+                            label="⏹ Stop NMEA Replay"
+                        />
+                    ) : (
+                        <MenuButton label="🛰 Replay NMEA Log" component="label">
+                            <input
+                                type="file"
+                                accept=".nmea,.txt,.log,text/plain"
+                                onChange={(e) => {
+                                    onNmeaReplay(e);
+                                    setIsOpen(false);
+                                }}
+                                style={{ display: 'none' }}
+                            />
+                        </MenuButton>
+                    )}
                     <MenuButton
                         onClick={() => handleAction(onOpenSettings)}
                         label="⚙ Settings"

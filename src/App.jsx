@@ -6,9 +6,11 @@ import { calculateCrossTrackDistance, calculateVerticalDeviation, calculateBeari
 import { classifyQuality, worseQuality } from './utils/QualityUtils'
 import { planDubinsPath } from './utils/DubinsUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
+import { startBrowserGps, startNmeaReplay, FixRateMeter } from './utils/GpsSources'
+import GpsStatus from './components/GpsStatus'
 import { flightLogger } from './utils/FlightLogger'
 import { useWakeLock } from './hooks/useWakeLock'
-import { resolveGpsAltitudeDatum, toEllipsoidalAltitude } from './utils/AltitudeDatum'
+import { resolveGpsAltitudeDatum } from './utils/AltitudeDatum'
 import { downloadKMZ } from './utils/KMZExporter'
 import LineSelector from './components/LineSelector'
 import HUD from './components/HUD'
@@ -137,6 +139,10 @@ function App() {
     const [gpsData, setGpsData] = useState({ lat: 0, lon: 0, alt: 0, speed: 0, heading: 0 })
     const [flightStatus, setFlightStatus] = useState('idle')
     const [simulating, setSimulating] = useState(false)
+    const [replaying, setReplaying] = useState(false) // NMEA log replay feeding gpsData
+    const stopReplayRef = useRef(null)
+    const fixRate = useRef(new FixRateMeter())
+    const [gpsStatus, setGpsStatus] = useState({ hz: 0, source: null, fixQuality: null, satellites: null })
     const [notification, setNotification] = useState(null) // { message, type }
     // 'metric' or 'imperial'; defaults to imperial, remembered in localStorage key 'units'
     const [units, setUnits] = useState(() =>
@@ -450,25 +456,56 @@ function App() {
         [runtimeSettings.useMissionTolerances, runtimeSettings.limits, sectionTolerances]
     );
 
+    // Device GPS, unless the simulator or an NMEA replay is feeding gpsData
     useEffect(() => {
-        if (simulating) return;
-        const handlePos = (pos) => {
-            const data = {
-                lat: pos.coords.latitude,
-                lon: pos.coords.longitude,
-                alt: toEllipsoidalAltitude(pos.coords.altitude, gpsAltitudeDatum, config.geoidUndulation),
-                speed: pos.coords.speed || 0,
-                heading: pos.coords.heading || 0
-            };
-            setGpsData(data);
-        };
-        const watchId = navigator.geolocation.watchPosition(handlePos, (err) => console.warn(err), {
-            enableHighAccuracy: true,
-            maximumAge: 1000,
-            timeout: 5000
+        if (simulating || replaying) return;
+        return startBrowserGps({ datum: gpsAltitudeDatum, undulation: config.geoidUndulation }, setGpsData);
+    }, [simulating, replaying, gpsAltitudeDatum]);
+
+    // Fix rate and receiver status for the GPS status line
+    useEffect(() => {
+        if (gpsData.lat !== 0) fixRate.current.tick();
+    }, [gpsData]);
+    const gpsDataRef = useRef(gpsData);
+    gpsDataRef.current = gpsData;
+    useEffect(() => {
+        const id = setInterval(() => {
+            const g = gpsDataRef.current;
+            const hz = fixRate.current.hz();
+            setGpsStatus(prev => {
+                const next = { hz: Math.round(hz * 10) / 10, source: g.source ?? (simulating ? 'sim' : null), fixQuality: g.fixQuality ?? null, satellites: g.satellites ?? null };
+                return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+            });
+        }, 1000);
+        return () => clearInterval(id);
+    }, [simulating]);
+
+    const stopReplay = () => {
+        stopReplayRef.current?.();
+        stopReplayRef.current = null;
+        setReplaying(false);
+    };
+
+    // Replay a recorded NMEA log (from an external receiver) as the GPS feed
+    const handleNmeaReplay = (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+        file.text().then(text => {
+            if (simulating) { gpsEmulator.stopSimulation(); setSimulating(false); }
+            stopReplayRef.current?.();
+            stopReplayRef.current = startNmeaReplay(text, setGpsData, {
+                fallbackUndulation: config.geoidUndulation,
+                onEnd: (count) => {
+                    stopReplayRef.current = null;
+                    setReplaying(false);
+                    showToast(count ? `NMEA replay finished (${count} fixes)` : 'No valid fixes in NMEA file', count ? 'success' : 'error');
+                },
+            });
+            setReplaying(true);
+            showToast(`Replaying ${file.name}`, 'success');
         });
-        return () => navigator.geolocation.clearWatch(watchId);
-    }, [simulating, gpsAltitudeDatum]);
+    };
 
     const resetFlightState = () => {
         setFlightStatus('idle');
@@ -636,6 +673,7 @@ function App() {
     };
 
     const toggleSimulation = () => {
+        if (replaying) stopReplay();
         if (simulating) {
             gpsEmulator.stopSimulation();
             setSimulating(false);
@@ -904,6 +942,9 @@ function App() {
                     // Menu Props
                     simulating={simulating}
                     onToggleSimulation={toggleSimulation}
+                    replaying={replaying}
+                    onNmeaReplay={handleNmeaReplay}
+                    onStopReplay={stopReplay}
                     onDownloadCSV={() => flightLogger.downloadCSV(missionFileName)}
                     onDownloadKMZ={() => downloadKMZ(flightLogger.history, missionFileName)}
                     onKmlImport={handleKmlImport}
@@ -946,6 +987,8 @@ function App() {
             )}
 
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(to bottom, #1a2a3a 0%, #161b22 100%)' }}>
+                <GpsStatus status={gpsStatus} replaying={replaying} />
+
                 {!currentLine && !mapMaximized && (
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', opacity: 0.5, zIndex: 50 }}>
                         <p>Select a flight line to begin navigation.</p>

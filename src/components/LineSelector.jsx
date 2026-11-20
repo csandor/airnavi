@@ -21,6 +21,9 @@ const LineSelector = ({
     // Menu Props
     simulating,
     onToggleSimulation,
+    replaying,
+    onNmeaReplay,
+    onStopReplay,
     onDownloadCSV,
     onDownloadKMZ,
     onKmlImport,
@@ -277,6 +280,9 @@ const LineSelector = ({
                 <HamburgerMenu
                     simulating={simulating}
                     onToggleSimulation={onToggleSimulation}
+                    replaying={replaying}
+                    onNmeaReplay={onNmeaReplay}
+                    onStopReplay={onStopReplay}
                     onDownloadCSV={onDownloadCSV}
                     onDownloadKMZ={onDownloadKMZ}
                     onKmlImport={onKmlImport}

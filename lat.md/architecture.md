@@ -35,11 +35,15 @@ The flight view is one fixed row of bezelled instruments: line gauge, compass, I
 
 ## GPS Sources
 
-Position comes from the browser's `watchPosition` or, in simulation mode, from [[src/utils/GPSEmulator.js#GPSEmulator]]. Both feed the same `gpsData` state.
+Position comes from the device GPS ([[src/utils/GpsSources.js#startBrowserGps]], the browser's `watchPosition`), from the simulator ([[src/utils/GPSEmulator.js#GPSEmulator]]), or from a recorded NMEA log replay. All three feed the same `gpsData` state.
+
+**NMEA replay.** "Replay NMEA Log" in the menu loads a log from an external receiver. [[src/utils/GpsSources.js#startNmeaReplay]] plays it back in real time, paced by the GGA UTC times (midnight rollover included). That makes it possible to test receiver data without the hardware. The device GPS is paused while the simulator or a replay runs.
+
+**Status line.** [[src/components/GpsStatus.jsx#GpsStatus]] sits in the lower-left corner of the flight view. It shows the source, the fix rate measured by [[src/utils/GpsSources.js#FixRateMeter]] (amber below 2 Hz, red with no fixes), and for NMEA the fix quality (RTK fixed/float) and satellite count.
 
 Browser `coords.altitude` is WGS-84 ellipsoidal on Android but sea-level (EGM2008 geoid) on iOS/iPadOS; [[missions#Altitude Datum]] normalises both.
 
-For external receivers (Garmin GLO 2, Emlid Reach M2), [[src/utils/NmeaParser.js#NmeaStream]] turns raw NMEA text into one fix per epoch in the `gpsData` shape. It merges the GGA and RMC that share a UTC time, with VTG joining the current epoch, and checks every checksum. Its `alt` is already ellipsoidal: GGA's MSL altitude plus the receiver's geoid separation, or plus a fallback undulation when that field is empty. It also passes through fix quality (4 = RTK fixed, 5 = float), satellites and HDOP. It is not yet wired into `App`; the native transport (Capacitor) is still to come.
+For external receivers (Garmin GLO 2, Emlid Reach M2), [[src/utils/NmeaParser.js#NmeaStream]] turns raw NMEA text into one fix per epoch in the `gpsData` shape. It merges the GGA and RMC that share a UTC time, with VTG joining the current epoch, and checks every checksum. Its `alt` is already ellipsoidal: GGA's MSL altitude plus the receiver's geoid separation, or plus a fallback undulation when that field is empty. It also passes through fix quality (4 = RTK fixed, 5 = float), satellites and HDOP. Live receivers will feed it through a native transport; for now it is used by the NMEA replay.
 
 ## Offline Basemap
 
