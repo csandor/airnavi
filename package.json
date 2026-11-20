@@ -15,9 +15,15 @@
     "version:minor": "npm version minor --no-git-tag-version && git add package.json package-lock.json && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\")",
     "version:major": "npm version major --no-git-tag-version && git add package.json package-lock.json && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\")",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:native": "vite build --mode native",
+    "cap:sync": "npm run build:native && cap sync",
+    "android:apk": "npm run cap:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
     "fflate": "^0.8.3",
     "maplibre-gl": "^6.17.0",
     "pmtiles": "^4.4.1",
@@ -25,6 +31,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "@eslint/js": "^9.17.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

@@ -59,6 +59,12 @@ The only deploy target is the viamap web host (https://new.viamap.hu/airnavi/). 
 
 A small Vite plugin writes `public/kml/manifest.json` listing the bundled sample missions so the app's picker needs no hardcoded list. `public/kml/` is gitignored; the plugin creates it when missing so a fresh checkout still builds, with an empty sample list.
 
+### Native Apps
+
+The same web build also ships as Android and iOS apps through Capacitor 8 (`capacitor.config.json`, app id `hu.viamap.airnavi`; native projects in `android/` and `ios/`). `npm run build:native` runs `vite build --mode native`. That build goes to `dist-native/`, generates no service worker (store updates replace the in-app update prompt), and drops `osm/osm.zip`, because a 250 MB bundle is impractical. `npm run cap:sync` copies it into both native projects, and `npm run android:apk` builds a debug APK with Gradle. That needs JDK 21 and Android SDK 36 via `JAVA_HOME`/`ANDROID_HOME`. iOS builds need a Mac with Xcode.
+
+The Android manifest requests fine/coarse location and wake lock, and the iOS `Info.plist` has a location usage string. Position still comes from the WebView's `navigator.geolocation`.
+
 ### App Updates
 
 The service worker is in `prompt` mode, so a new version downloads in the background but never takes over by itself. [[src/components/UpdatePrompt.jsx#UpdatePrompt]] registers it, checks for updates every 30 minutes and whenever the app returns to the foreground, and then shows a "Reload" banner.

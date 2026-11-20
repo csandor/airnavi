@@ -35,10 +35,28 @@ function kmlManifestPlugin() {
     }
 }
 
+// The native (Capacitor) build skips the 250 MB offline basemap package: an app bundle
+// that size is impractical, so the basemap is downloaded at runtime instead.
+function dropOsmPackagePlugin(outDir) {
+    return {
+        name: 'drop-osm-package',
+        apply: 'build',
+        closeBundle() {
+            fs.rmSync(path.resolve(__dirname, outDir, 'osm/osm.zip'), { force: true })
+        }
+    }
+}
+
 // https://vite.dev/config/
-export default defineConfig({
+// `vite build --mode native` (npm run build:native) builds for the Capacitor apps:
+// output in dist-native/, no service worker (app-store updates replace it), no osm.zip.
+export default defineConfig(({ mode }) => {
+    const native = mode === 'native'
+    const outDir = native ? 'dist-native' : 'dist'
+    return {
     base: './',
     build: {
+        outDir,
         // FullMap.jsx lazy-loads maplibre-gl, which alone exceeds this limit;
         // it's deferred until the user opens the map view, not part of the initial load.
         chunkSizeWarningLimit: 1100,
@@ -55,7 +73,9 @@ export default defineConfig({
     plugins: [
         kmlManifestPlugin(),
         react(),
+        native && dropOsmPackagePlugin(outDir),
         VitePWA({
+            disable: native,
             // The new version waits until the pilot taps Reload in UpdatePrompt.jsx, which
             // also registers the service worker (hence no injected registration script).
             registerType: 'prompt',
@@ -96,4 +116,5 @@ export default defineConfig({
             }
         })
     ],
+    }
 })

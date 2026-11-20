@@ -42,3 +42,6 @@ dist-ssr
 .beads-credential-key
 .beads/proxieddb/
 *.gate.lock*
+
+# Capacitor native web build (npm run build:native)
+dist-native

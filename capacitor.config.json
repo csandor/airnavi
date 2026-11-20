@@ -1,0 +1,8 @@
+{
+  "appId": "hu.viamap.airnavi",
+  "appName": "AirNavi",
+  "webDir": "dist-native",
+  "android": {
+    "allowMixedContent": false
+  }
+}
