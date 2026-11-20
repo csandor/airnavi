@@ -6,7 +6,9 @@ How AirNavi tracks the aircraft against the current line, starts and stops recor
 
 Flight status moves `idle` → `flying` → `completed`/`idle`. Recording starts automatically when the aircraft is on-line, or manually via the toggle.
 
-`flying` ends when the far endpoint is crossed or the pilot toggles it off; `finishFlight` in [[src/App.jsx#App]] then computes completion and shows [[src/components/SummaryDialog.jsx#SummaryDialog]], whose auto-close delay comes from runtime settings.
+`flying` ends when the far endpoint is crossed or the pilot toggles it off; `finishFlight` in [[src/App.jsx#App]] then computes completion and shows [[src/components/SummaryDialog.jsx#SummaryDialog]], a compact strip at the top edge (over the line selector) so the instruments stay visible while lining up for the next line; its auto-close delay comes from runtime settings.
+
+The record button sits at the far right of the line-selector row, large, and away from the Direction button to avoid mis-taps.
 
 ## Direction
 
@@ -16,14 +18,18 @@ The flying direction is chosen once per line, when it becomes current: whichever
 
 ## Auto-Start
 
-While `idle`, every GPS fix checks the green criteria; when all hold at once, status becomes `flying`.
+While `idle`, every GPS fix checks the green criteria; when all hold at once, status becomes `flying`. The decision is [[src/utils/AutoStart.js#shouldAutoStart]].
 
-All four must be true simultaneously, using the effective limits: [[src/config.js#config|config.limits]] (runtime-overridable), with the green/yellow values replaced by the current section's [[missions#Mission Tolerances]] when the file declares them:
+All must be true simultaneously, using the effective limits: [[src/config.js#config|config.limits]] (runtime-overridable), with the green/yellow values replaced by the current section's [[missions#Mission Tolerances]] when the file declares them:
 
-- within `start_radius` metres of the line's start **or** end point
+- along-track position inside the window from `start_radius` metres before the start point up to the far end ([[src/utils/AutoStart.js#isInStartWindow]]), so recording can also start mid-line
 - cross-track error ≤ `green`
 - vertical error ≤ `vertical_green`
 - heading error ≤ `heading_green` degrees
+
+It used to require a fix within `start_radius` (15 m) of an endpoint. At about 70 kn with 1 Hz fixes, consecutive fixes are ~36 m apart, so a fix rarely landed in that circle and recording never auto-started even with everything green.
+
+Stopping recording by hand disarms auto-start until the aircraft leaves the window or the line or direction changes, so a manual stop mid-line is not immediately undone.
 
 ## Logic Loop
 

@@ -18,6 +18,7 @@ import LineGauge from './components/LineGauge'
 const FullMap = lazy(() => import('./components/FullMap'))
 import DistanceDisplay from './components/DistanceDisplay'
 import SummaryDialog from './components/SummaryDialog'
+import { shouldAutoStart, isInStartWindow } from './utils/AutoStart'
 import SettingsDialog from './components/SettingsDialog'
 import Toast from './components/Toast'
 import UpdatePrompt from './components/UpdatePrompt'
@@ -150,6 +151,7 @@ function App() {
     const greenCoverage = useRef(new Set()); // Track meters covered in green
     const chunkQuality = useRef(new Map()); // chunk index -> worst quality ('green'|'yellow'|'red') seen while flying
     const prevAlongTrack = useRef(null); // Track previous position for delta
+    const autoStartArmed = useRef(true); // false after a manual stop until the aircraft leaves the start window
 
     // Face rectangles of the docked line gauge / minimap, reported by VisualNav's layout
     const [panelFaces, setPanelFaces] = useState({ gauge: null, map: null });
@@ -666,6 +668,7 @@ function App() {
         if (!currentLine) return;
 
         if (flightStatus === 'flying') {
+            autoStartArmed.current = false; // don't immediately auto-restart on the same pass
             finishFlight();
         } else {
             resetFlightState();
@@ -675,33 +678,33 @@ function App() {
         }
     };
 
-    // Auto-start recording when within green limits on all axes
+    // Re-arm auto-start whenever the line or direction changes
+    useEffect(() => { autoStartArmed.current = true; }, [currentLine, direction]);
+
+    // Auto-start recording inside the line's along-track window with all axes green
+    // (see utils/AutoStart.js and lat.md flight#Auto-Start)
     useEffect(() => {
         if (!currentLine || gpsData.lat === 0 || flightStatus !== 'idle') return;
 
         const start = direction === 'normal' ? currentLine.start : currentLine.end;
         const end = direction === 'normal' ? currentLine.end : currentLine.start;
-        const crossTrackDist = calculateCrossTrackDistance(gpsData, start, end);
+        const crossTrack = calculateCrossTrackDistance(gpsData, start, end);
         const altDiff = calculateVerticalDeviation(gpsData, start, end);
         const lineBearing = calculateBearing(start.lat, start.lon, end.lat, end.lon);
         let headingDiff = gpsData.heading - lineBearing;
         while (headingDiff < -180) headingDiff += 360;
         while (headingDiff > 180) headingDiff -= 360;
 
-        const distToStart = calculateDistance(gpsData.lat, gpsData.lon, start.lat, start.lon) * 1000;
-        const distToEnd = calculateDistance(gpsData.lat, gpsData.lon, end.lat, end.lon) * 1000;
-        const nearEndpoint = distToStart <= limits.start_radius || distToEnd <= limits.start_radius;
-
-        // Only allow auto-start near the start of the line, not the end (e.g. overshooting
-        // past the endpoint in simulation shouldn't immediately re-trigger recording).
         const totalLen = calculateDistance(start.lat, start.lon, end.lat, end.lon) * 1000;
         const alongTrack = calculateAlongTrackDistance(gpsData, start, end);
-        if (alongTrack >= totalLen) return;
 
-        if (nearEndpoint &&
-            Math.abs(crossTrackDist) <= limits.green &&
-            Math.abs(altDiff) <= limits.vertical_green &&
-            Math.abs(headingDiff) <= limits.heading_green) {
+        // Leaving the window re-arms auto-start after a manual stop
+        if (!isInStartWindow(alongTrack, totalLen, limits.start_radius)) {
+            autoStartArmed.current = true;
+            return;
+        }
+
+        if (shouldAutoStart({ alongTrack, totalLen, crossTrack, altDiff, headingDiff, armed: autoStartArmed.current }, limits)) {
             resetFlightState();
             setFlightStatus('flying');
             flightLogger.startFlight();

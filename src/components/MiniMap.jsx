@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, lazy, Suspense } from 'react';
 import { calculateDistance, calculateAlongTrackDistance } from '../utils/GeoUtils';
-import { QUALITY_COLORS } from '../utils/QualityUtils';
+import { QUALITY_COLORS, FLIGHT_LINE_COLOR } from '../utils/QualityUtils';
+import { drawAircraftArrow } from '../utils/AircraftArrow';
 import { fitMercatorView } from '../utils/MiniMapProjection';
 
 // MapLibre is heavy: load the OSM basemap lazily, in its own chunk.
@@ -60,8 +61,8 @@ const MiniMap = ({ currentLine, gpsData, direction, className, flightStatus, chu
             setBasemapView(prev => (prev && prev.lon === view.lon && prev.lat === view.lat && prev.zoom === view.zoom) ? prev : view);
 
             // Draw Flight Line
-            ctx.strokeStyle = basemapReady ? '#00e5ff' : 'rgba(255, 255, 255, 0.5)';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = basemapReady ? FLIGHT_LINE_COLOR : 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 4;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.moveTo(toX(start.lon), toY(start.lat));
@@ -83,7 +84,7 @@ const MiniMap = ({ currentLine, gpsData, direction, className, flightStatus, chu
 
             // Draw Path History — colored by tracking quality while recording, same as the full-screen map.
             if (path.length > 1) {
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 3;
                 if (flightStatus === 'flying' && chunkQuality) {
                     for (let i = 1; i < path.length; i++) {
                         const alongTrack = calculateAlongTrackDistance(path[i], start, end);
@@ -113,26 +114,8 @@ const MiniMap = ({ currentLine, gpsData, direction, className, flightStatus, chu
 
                 ctx.save();
                 ctx.translate(ax, ay);
-                // Rotate canvas to heading?
-                // Heading 0 = North (Up)
-                // Canvas 0 = Right? No, usually up is -Y.
-                // Standard math: 0 = East.
-                // GPS Heading: 0 = North, 90 = East.
-                // Context rotation is clockwise radians.
-                // 0 deg heading -> points Up (-Y). 
-                // We want to draw a triangle pointing up.
-
-                ctx.rotate((gpsData.heading * Math.PI) / 180);
-
-                ctx.fillStyle = '#00ccff';
-                ctx.beginPath();
-                ctx.moveTo(0, -8);
-                ctx.lineTo(6, 8);
-                ctx.lineTo(0, 5);
-                ctx.lineTo(-6, 8);
-                ctx.closePath();
-                ctx.fill();
-
+                ctx.rotate((gpsData.heading * Math.PI) / 180); // heading 0 = north = up (-Y), clockwise
+                drawAircraftArrow(ctx, 26);
                 ctx.restore();
             }
 

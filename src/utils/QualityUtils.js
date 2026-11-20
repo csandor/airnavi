@@ -31,3 +31,6 @@ export const worseQuality = (a, b) => {
     if (!b) return a;
     return QUALITY_RANK[a] >= QUALITY_RANK[b] ? a : b;
 };
+
+// Flight-line colour shared by the minimap and the full map: dark blue, readable on the light OSM basemap.
+export const FLIGHT_LINE_COLOR = '#0047b3';

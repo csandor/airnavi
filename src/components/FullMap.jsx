@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { maplibregl, loadOsmStyle } from '../utils/OsmStyle';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { calculateAlongTrackDistance } from '../utils/GeoUtils';
-import { QUALITY_COLORS } from '../utils/QualityUtils';
+import { QUALITY_COLORS, FLIGHT_LINE_COLOR } from '../utils/QualityUtils';
+import { aircraftArrowImage } from '../utils/AircraftArrow';
 
 const DEFAULT_PATH_COLOR = 'rgba(255, 200, 0, 0.6)';
 
@@ -66,7 +67,7 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
                     id: 'all-lines-layer',
                     type: 'line',
                     source: 'all-lines',
-                    paint: { 'line-color': '#00e5ff', 'line-width': 4, 'line-opacity': 0.9 }
+                    paint: { 'line-color': FLIGHT_LINE_COLOR, 'line-width': 5, 'line-opacity': 0.9 }
                 });
 
                 map.addSource('completed-lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -129,19 +130,22 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
                     id: 'path-layer',
                     type: 'line',
                     source: 'path',
-                    paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_PATH_COLOR], 'line-width': 3 }
+                    paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_PATH_COLOR], 'line-width': 4 }
                 });
 
+                const ratio = window.devicePixelRatio || 1;
+                map.addImage('aircraft-arrow', aircraftArrowImage(40, ratio), { pixelRatio: ratio });
                 map.addSource('aircraft', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
                 map.addLayer({
                     id: 'aircraft-layer',
-                    type: 'circle',
+                    type: 'symbol',
                     source: 'aircraft',
-                    paint: {
-                        'circle-radius': 7,
-                        'circle-color': '#00ccff',
-                        'circle-stroke-color': '#000',
-                        'circle-stroke-width': 1
+                    layout: {
+                        'icon-image': 'aircraft-arrow',
+                        'icon-rotate': ['get', 'heading'],
+                        'icon-rotation-alignment': 'map',
+                        'icon-allow-overlap': true,
+                        'icon-ignore-placement': true
                     }
                 });
 
@@ -339,7 +343,7 @@ const FullMap = ({ lines, completedLines, currentLine, gpsData, direction, onLin
         const hasAircraft = gpsData && gpsData.lat !== 0;
         map.getSource('aircraft').setData({
             type: 'FeatureCollection',
-            features: hasAircraft ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [gpsData.lon, gpsData.lat] } }] : []
+            features: hasAircraft ? [{ type: 'Feature', properties: { heading: gpsData.heading || 0 }, geometry: { type: 'Point', coordinates: [gpsData.lon, gpsData.lat] } }] : []
         });
 
         // Bounds: start, end, and aircraft position, padded 20% — same strategy as MiniMap.

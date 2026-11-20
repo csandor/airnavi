@@ -57,7 +57,7 @@ const config = {
         vertical_yellow: 10, // Within this -> Yellow. Above -> Red.
         heading_green: 10,  // Within this heading error (degrees) -> auto-start recording
         heading_yellow: 15, // Within this heading error (degrees) -> Yellow. Above -> Red.
-        start_radius: 15,  // Must be within this distance (meters) of start or end point to auto-start recording
+        start_radius: 15,  // Auto-start window opens this many meters before the start point and runs to the far end
         speed_green: 75,   // Below this speed (knots) -> Green Speed. Above -> Yellow/Red.
         speed_yellow: 80  // Below this speed (knots) -> Yellow Speed. Above -> Red.
     },

@@ -14,7 +14,7 @@ const FIELD_GROUPS = [
             { key: 'vertical_yellow', label: 'Vertical Yellow (m)', hint: 'Within this -> Yellow. Above -> Red' },
             { key: 'heading_green', label: 'Heading Green (deg)', hint: 'Within this heading error -> auto-start recording' },
             { key: 'heading_yellow', label: 'Heading Yellow (deg)', hint: 'Within this -> Yellow. Above -> Red' },
-            { key: 'start_radius', label: 'Line Autostart Distance (m)', hint: 'Must be within this distance of start or end point to auto-start recording' },
+            { key: 'start_radius', label: 'Autostart Lead-in (m)', hint: 'Recording auto-starts with all axes green from this far before the start point up to the end of the line' },
             { key: 'speed_green', label: 'Speed Green (kts)', hint: 'Below this speed -> Green Speed' },
             { key: 'speed_yellow', label: 'Speed Yellow (kts)', hint: 'Below this speed -> Yellow Speed. Above -> Red' },
         ]

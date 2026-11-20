@@ -182,34 +182,6 @@ const LineSelector = ({
                     </button>
                 </div>
 
-                {/* Flight Control Button (Play/Stop) */}
-                {currentLine && (
-                    <button
-                        className="btn-primary"
-                        onClick={onToggleFlight}
-                        style={{
-                            padding: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: isFlying ? 'hsl(var(--color-danger))' : 'rgba(255, 255, 255, 0.1)',
-                            border: isFlying ? 'none' : '1px solid hsl(var(--color-success))',
-                            color: isFlying ? 'white' : 'hsl(var(--color-success))'
-                        }}
-                        title={isFlying ? "Stop Recording" : "Start Flying"}
-                    >
-                        {isFlying ? (
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <rect x="6" y="6" width="12" height="12" rx="1" />
-                            </svg>
-                        ) : (
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        )}
-                    </button>
-                )}
-
                 {/* Map View Toggle Button (Map/Compass) */}
                 <button
                     className="btn-primary"
@@ -263,6 +235,42 @@ const LineSelector = ({
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 20l-5.5-2.5V4L9 6.5m0 13.5l6-3m-6 3V6.5m6 10.5l5.5 2.5V6l-5.5-2.5m0 13.5V3.5" />
                         </svg>
+                    </button>
+                )}
+
+                {/* Flight Control Button (Record/Stop): large, at the far end of the row,
+                    well away from the Direction button so the two can't be mis-tapped */}
+                {currentLine && (
+                    <button
+                        className="btn-primary"
+                        onClick={onToggleFlight}
+                        style={{
+                            marginLeft: 'var(--spacing-lg)',
+                            minWidth: '96px',
+                            minHeight: '56px',
+                            padding: '8px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            fontSize: '1.1em',
+                            fontWeight: 'bold',
+                            background: isFlying ? 'hsl(var(--color-danger))' : 'rgba(255, 255, 255, 0.1)',
+                            border: isFlying ? 'none' : '2px solid hsl(var(--color-success))',
+                            color: isFlying ? 'white' : 'hsl(var(--color-success))'
+                        }}
+                        title={isFlying ? "Stop Recording" : "Start Recording"}
+                    >
+                        {isFlying ? (
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="6" width="12" height="12" rx="1" />
+                            </svg>
+                        ) : (
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="7" />
+                            </svg>
+                        )}
+                        {isFlying ? 'STOP' : 'REC'}
                     </button>
                 )}
 

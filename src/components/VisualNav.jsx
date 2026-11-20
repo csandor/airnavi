@@ -348,23 +348,16 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
 
                     const targetRad = targetHeading * Math.PI / 180;
 
-                    // --- Lateral Shift Calculation (CDI Behavior) ---
-                    const greenLimit = (limits && limits.green) || 5;
-                    const shift = Math.max(-radius * 0.95, Math.min(radius * 0.95, (-crossTrackDist / greenLimit) * (radius * 0.5)));
-
+                    // Direction only: the line always passes through the centre
+                    // (cross-track is shown by the ILS needle, not here).
                     ctx.save();
                     ctx.rotate(targetRad);
+                    const yTop = -radius;
 
-                    // Path intersection with circle: x^2 + y^2 = radius^2
-                    // Here x = shift (in the rotated targetRad context)
-                    const sRad = Math.sqrt(Math.max(0, radius * radius - shift * shift));
-                    const yTop = -sRad;
-
-                    // 1. Draw The Line (Full diameter, not clipped)
-                    ctx.translate(shift, 0);
+                    // 1. Draw The Line (full diameter)
                     ctx.strokeStyle = '#ff0000';
                     ctx.lineWidth = 3;
-                    ctx.lineCap = 'round'; // Back to round for better aesthetics
+                    ctx.lineCap = 'round';
 
                     const lineLen = radius * 3; // Long enough to span the whole compass
                     ctx.beginPath();
@@ -386,7 +379,7 @@ const VisualNav = ({ crossTrackDist, altDiff, heading, targetHeading, limits, sh
                     ctx.stroke();
                     ctx.restore();
 
-                    ctx.restore(); // Restore targetRad/shift
+                    ctx.restore(); // Restore targetRad
                     ctx.restore(); // Restore heading
                 }
 
