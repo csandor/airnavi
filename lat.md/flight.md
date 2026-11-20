@@ -14,7 +14,7 @@ The record button sits at the far right of the line-selector row, large, and awa
 
 The flying direction is chosen once per line, when it becomes current: whichever endpoint is closer to the GPS position becomes the entry. Without a fix it defaults to `normal`.
 
-`handleLineSelect` is the single entry point for every way a line becomes current (manual pick, auto-advance, restore), so this orientation happens there and nothing re-evaluates it afterwards.
+`handleLineSelect` is the single entry point for every way a line becomes current (manual pick, auto-advance, restore), so this orientation happens there. The only later change, apart from the pilot's Direction button, is auto-start reversing it when the line is being flown the other way (see [[flight#Auto-Start]]).
 
 ## Auto-Start
 
