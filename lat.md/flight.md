@@ -29,7 +29,9 @@ All must be true simultaneously, using the effective limits: [[src/config.js#con
 
 It used to require a fix within `start_radius` (15 m) of an endpoint. At about 70 kn with 1 Hz fixes, consecutive fixes are ~36 m apart, so a fix rarely landed in that circle and recording never auto-started even with everything green.
 
-Stopping recording by hand disarms auto-start until the aircraft leaves the window or the line or direction changes, so a manual stop mid-line is not immediately undone.
+Both directions are checked ([[src/utils/AutoStart.js#pickAutoStartDirection]]). The direction chosen at line selection is the endpoint nearest the aircraft at that moment, which is wrong when the line is selected from far away. So if the aircraft is green flying the line the other way, the direction is reversed and recording starts.
+
+Stopping recording by hand disarms auto-start until the aircraft leaves the window (of both directions) or the line or direction changes, so a manual stop mid-line is not immediately undone.
 
 ## Logic Loop
 

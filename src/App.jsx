@@ -20,7 +20,7 @@ import LineGauge from './components/LineGauge'
 const FullMap = lazy(() => import('./components/FullMap'))
 import DistanceDisplay from './components/DistanceDisplay'
 import SummaryDialog from './components/SummaryDialog'
-import { shouldAutoStart, isInStartWindow } from './utils/AutoStart'
+import { isInStartWindow, lineMetrics, pickAutoStartDirection } from './utils/AutoStart'
 import SettingsDialog from './components/SettingsDialog'
 import Toast from './components/Toast'
 import UpdatePrompt from './components/UpdatePrompt'
@@ -719,34 +719,28 @@ function App() {
     // Re-arm auto-start whenever the line or direction changes
     useEffect(() => { autoStartArmed.current = true; }, [currentLine, direction]);
 
-    // Auto-start recording inside the line's along-track window with all axes green
-    // (see utils/AutoStart.js and lat.md flight#Auto-Start)
+    // Auto-start recording inside the line's along-track window with all axes green, in
+    // either direction (see utils/AutoStart.js and lat.md flight#Auto-Start)
     useEffect(() => {
         if (!currentLine || gpsData.lat === 0 || flightStatus !== 'idle') return;
 
-        const start = direction === 'normal' ? currentLine.start : currentLine.end;
-        const end = direction === 'normal' ? currentLine.end : currentLine.start;
-        const crossTrack = calculateCrossTrackDistance(gpsData, start, end);
-        const altDiff = calculateVerticalDeviation(gpsData, start, end);
-        const lineBearing = calculateBearing(start.lat, start.lon, end.lat, end.lon);
-        let headingDiff = gpsData.heading - lineBearing;
-        while (headingDiff < -180) headingDiff += 360;
-        while (headingDiff > 180) headingDiff -= 360;
-
-        const totalLen = calculateDistance(start.lat, start.lon, end.lat, end.lon) * 1000;
-        const alongTrack = calculateAlongTrackDistance(gpsData, start, end);
-
-        // Leaving the window re-arms auto-start after a manual stop
-        if (!isInStartWindow(alongTrack, totalLen, limits.start_radius)) {
+        // Leaving the window (of either direction) re-arms auto-start after a manual stop
+        const inWindow = ['normal', 'reverse'].some(d => {
+            const { alongTrack, totalLen } = lineMetrics(gpsData, currentLine, d);
+            return isInStartWindow(alongTrack, totalLen, limits.start_radius);
+        });
+        if (!inWindow) {
             autoStartArmed.current = true;
             return;
         }
 
-        if (shouldAutoStart({ alongTrack, totalLen, crossTrack, altDiff, headingDiff, armed: autoStartArmed.current }, limits)) {
+        const startDirection = pickAutoStartDirection(gpsData, currentLine, direction, limits, autoStartArmed.current);
+        if (startDirection) {
+            if (startDirection !== direction) setDirection(startDirection);
             resetFlightState();
             setFlightStatus('flying');
             flightLogger.startFlight();
-            showToast("Recording Started", "success");
+            showToast(startDirection !== direction ? "Recording Started (direction reversed)" : "Recording Started", "success");
         }
     }, [gpsData, flightStatus, currentLine, direction, limits]);
 
