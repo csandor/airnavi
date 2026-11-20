@@ -39,6 +39,8 @@ Position comes from the browser's `watchPosition` or, in simulation mode, from [
 
 Browser `coords.altitude` is WGS-84 ellipsoidal on Android but sea-level (EGM2008 geoid) on iOS/iPadOS; [[missions#Altitude Datum]] normalises both.
 
+For external receivers (Garmin GLO 2, Emlid Reach M2), [[src/utils/NmeaParser.js#NmeaStream]] turns raw NMEA text into one fix per epoch in the `gpsData` shape. It merges the GGA and RMC that share a UTC time, with VTG joining the current epoch, and checks every checksum. Its `alt` is already ellipsoidal: GGA's MSL altitude plus the receiver's geoid separation, or plus a fallback undulation when that field is empty. It also passes through fix quality (4 = RTK fixed, 5 = float), satellites and HDOP. It is not yet wired into `App`; the native transport (Capacitor) is still to come.
+
 ## Offline Basemap
 
 The full map uses MapLibre GL with a PMTiles basemap of Hungary, stored in the browser's Origin Private File System (OPFS) rather than precached by the service worker.
