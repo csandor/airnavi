@@ -93,7 +93,9 @@ const HamburgerMenu = ({
                         <MenuButton label="🛰 Replay NMEA Log" component="label">
                             <input
                                 type="file"
-                                accept=".nmea,.txt,.log,text/plain"
+                                // No accept filter: Android maps it to MIME types and .nmea has
+                                // none, so the file would be greyed out. Non-NMEA files just
+                                // yield "No valid fixes".
                                 onChange={(e) => {
                                     onNmeaReplay(e);
                                     setIsOpen(false);
