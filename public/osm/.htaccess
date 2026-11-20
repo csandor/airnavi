@@ -1,0 +1,8 @@
+# CORS for the offline basemap package: the Capacitor apps load it from their own
+# origin (https://localhost on Android, capacitor://localhost on iOS). Same-origin PWA
+# requests need no header. Deployed by npm run deploy (Vite copies public/ into dist/).
+<IfModule mod_headers.c>
+    SetEnvIf Origin "^(https://localhost|capacitor://localhost)$" AIRNAVI_CORS=$0
+    Header set Access-Control-Allow-Origin "%{AIRNAVI_CORS}e" env=AIRNAVI_CORS
+    Header merge Vary Origin
+</IfModule>

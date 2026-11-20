@@ -12,7 +12,11 @@ const config = {
     // so the basemap renders fully offline afterwards (see src/utils/OsmAssets.js).
     // Relative to the deployed app root (same-origin, avoids CORS): served from public/osm/osm.zip
     // in dev, and from dist/osm/osm.zip (built from the same file) in production.
-    osmPackageUrl: './osm/osm.zip',
+    // The native apps (vite --mode native) don't bundle it and fetch it from the web host,
+    // which allows their origins via public/osm/.htaccess (CORS).
+    osmPackageUrl: import.meta.env.MODE === 'native'
+        ? 'https://new.viamap.hu/airnavi/osm/osm.zip'
+        : './osm/osm.zip',
     // Bump when osm.zip changes so devices re-download it instead of keeping the stale OPFS copy.
     osmPackageVersion: 2,
     osmPmtilesFileName: 'hungary-260719.osm.pmtiles',

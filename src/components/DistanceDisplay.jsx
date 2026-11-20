@@ -29,6 +29,10 @@ const DistanceDisplay = ({
             bottom: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
+            // left:50% would cap a shrink-to-fit box at half the parent's width and wrap
+            // labels/values onto several lines; size to content, limited to the full width.
+            width: 'max-content',
+            maxWidth: 'calc(100% - 16px)',
             display: 'flex',
             gap: '20px',
             background: 'rgba(0,0,0,0.5)',
@@ -61,7 +65,7 @@ const DistanceDisplay = ({
 };
 
 const DataField = ({ label, value, color }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', whiteSpace: 'nowrap' }}>
         <span style={{ fontSize: '0.75rem', color: 'hsl(var(--color-text-secondary))', textTransform: 'uppercase' }}>{label}</span>
         <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: color || 'white', fontFamily: 'monospace' }}>{value}</span>
     </div>
