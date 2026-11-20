@@ -1,5 +1,6 @@
 import React from 'react';
 import { FIX_QUALITY_LABELS } from '../utils/GpsSources';
+import CornerLabel from './CornerLabel';
 
 const SOURCE_LABELS = { device: 'Device GPS', nmea: 'NMEA', sim: 'Simulator' };
 
@@ -17,20 +18,9 @@ const GpsStatus = ({ status, replaying }) => {
     if (satellites) parts.push(`${satellites} sat`);
 
     return (
-        <div style={{
-            position: 'absolute',
-            left: 8,
-            bottom: 6,
-            zIndex: 60,
-            fontSize: '0.75rem',
-            padding: '2px 6px',
-            borderRadius: 'var(--radius-sm)',
-            background: 'rgba(0,0,0,0.45)',
-            color: 'rgba(255,255,255,0.85)',
-            pointerEvents: 'none',
-        }}>
+        <CornerLabel side="left">
             {parts.join(' · ')} · <span style={{ color: rateColor, fontWeight: 'bold' }}>{hz ? `${hz.toFixed(1)} Hz` : 'no fix'}</span>
-        </div>
+        </CornerLabel>
     );
 };
 

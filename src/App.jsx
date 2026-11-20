@@ -8,6 +8,8 @@ import { planDubinsPath } from './utils/DubinsUtils'
 import { gpsEmulator } from './utils/GPSEmulator'
 import { startBrowserGps, startNmeaReplay, FixRateMeter } from './utils/GpsSources'
 import GpsStatus from './components/GpsStatus'
+import CornerLabel from './components/CornerLabel'
+import { version } from '../package.json'
 import { flightLogger } from './utils/FlightLogger'
 import { useWakeLock } from './hooks/useWakeLock'
 import { resolveGpsAltitudeDatum } from './utils/AltitudeDatum'
@@ -918,7 +920,6 @@ function App() {
             )}
             <div style={{ position: 'relative', zIndex: 90 }}>
                 <LineSelector
-                    missionFileName={missionFileName}
                     lines={availableLines}
                     currentLine={currentLine}
                     onLineSelect={handleLineSelect}
@@ -982,6 +983,9 @@ function App() {
 
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(to bottom, #1a2a3a 0%, #161b22 100%)' }}>
                 <GpsStatus status={gpsStatus} replaying={replaying} />
+                <CornerLabel side="right">
+                    AirNavi v{version}{missionFileName ? ` · ${missionFileName.replace(/\.[^./\\]+$/, '')}` : ''}
+                </CornerLabel>
 
                 {!currentLine && !mapMaximized && (
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', opacity: 0.5, zIndex: 50 }}>

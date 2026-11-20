@@ -39,7 +39,7 @@ Position comes from the device GPS ([[src/utils/GpsSources.js#startBrowserGps]],
 
 **NMEA replay.** "Replay NMEA Log" in the menu loads a log from an external receiver. [[src/utils/GpsSources.js#startNmeaReplay]] plays it back in real time, paced by the GGA UTC times (midnight rollover included). That makes it possible to test receiver data without the hardware. The device GPS is paused while the simulator or a replay runs.
 
-**Status line.** [[src/components/GpsStatus.jsx#GpsStatus]] sits in the lower-left corner of the flight view. It shows the source, the fix rate measured by [[src/utils/GpsSources.js#FixRateMeter]] (amber below 2 Hz, red with no fixes), and for NMEA the fix quality (RTK fixed/float) and satellite count.
+**Status line.** [[src/components/GpsStatus.jsx#GpsStatus]] sits in the lower-left corner of the flight view; the app version and mission name sit in the same row in the lower-right corner. Both use [[src/components/CornerLabel.jsx#CornerLabel]] and truncate rather than wrap. That freed the title line above the line selector. It shows the source, the fix rate measured by [[src/utils/GpsSources.js#FixRateMeter]] (amber below 2 Hz, red with no fixes), and for NMEA the fix quality (RTK fixed/float) and satellite count.
 
 Browser `coords.altitude` is WGS-84 ellipsoidal on Android but sea-level (EGM2008 geoid) on iOS/iPadOS; [[missions#Altitude Datum]] normalises both.
 
