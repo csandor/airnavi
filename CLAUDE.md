@@ -86,12 +86,14 @@ Both folders are gitignored. Notable files:
 `test-kml/` (not bundled):
 - `lines-err-*.kml` — intentionally broken files for testing parser error handling
 - `m3/` — a real multi-section survey export unpacked: one `mis###.kml`/`mis###.txt`/`mis###_photo_coords.txt` triplet per section, each `mis###.txt` carrying its own row-order comment (data rows are 0-based; the row-order comment already uses the post-shift 1-based numbers, so it happens to still validate — see `missions#Row Order` for what happens when the two genuinely disagree)
+- `diosd/` — a 3-section `mis###` export (Diósd), same layout as `m3/`
 - `vernova/` — a single-section `mis001` export (kml/txt/photo coords, plus `mis001_sections.txt`)
 
 `public/kml/` (bundled sample missions, offered in the app's picker via the auto-generated `manifest.json`):
 - `Sóskút_teszt_repvonalak_Z.kml` — uses `ID1` as seq field (first SimpleData), 500 m MSL altitude
 - `Erdokurt.kml` — Google Earth export, seq 1–4 added manually, 160 m MSL altitude
 - `kuldetes_M3_3cm_2026.zip` — the `m3/` mission still zipped, for testing `ZipMissionParser.js` end-to-end (43 sections, 216 lines)
+- `diosd.zip` — `test-kml/diosd/` zipped the same way (3 sections, 28 lines)
 - `mis001-vernova.txt` (8 lines, with row order) / `mis001-vernova-sections.txt` (8 lines, no row order)
 - `BPXITeszt_repvonalak_extra.kml`, `lines-reti-csik.kml`
 
